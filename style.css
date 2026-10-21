@@ -1,0 +1,67 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+.game-container {
+  position: relative;
+  border: 4px solid #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  max-width: 100%;
+}
+
+canvas {
+  background-color: #38bdf8; /* Céu ensolarado */
+  display: block;
+}
+
+/* Controles de Toque para Telemóvel */
+.touch-controls {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  pointer-events: none; /* Deixa passar toques que não sejam nos botões */
+}
+
+.d-pad, .jump-btn {
+  pointer-events: auto;
+}
+
+.touch-btn {
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 15px 22px;
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+
+.touch-btn:active {
+  background: rgba(255, 255, 255, 0.8);
+  color: #000;
+}
+
+.jump-btn {
+  border-radius: 20px;
+  padding: 15px 25px;
+  background: rgba(234, 179, 8, 0.6);
+}
