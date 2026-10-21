@@ -9,8 +9,8 @@ const ctx = canvas.getContext('2d');
 const ben = {
   x: 50,
   y: 200,
-  width: 32,
-  height: 48,
+  width: 50,
+  height: 75,
   color: '#2563eb', // Roupa do Ben
   velocityX: 0,
   velocityY: 0,
