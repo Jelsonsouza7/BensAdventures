@@ -36,8 +36,8 @@ waterfireImg.onload = () => { waterfireLoaded = true; };
 const ben = {
   x: 50,
   y: 200,
-  width: 50,
-  height: 75,
+  width: 90,
+  height: 90,
   velocityX: 0,
   velocityY: 0,
   speed: 5,
