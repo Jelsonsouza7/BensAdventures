@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d');
 let currentLevel = 1;
 let levelCompleted = false;
 
-// Carregar Imagens Base
+// Carregar Imagens do Personagem e Objetos Base
 const benImg = new Image(); benImg.src = 'ben.png';
 const benAttackRightImg = new Image(); benAttackRightImg.src = 'ben_attack_right.png';
 const benAttackLeftImg = new Image(); benAttackLeftImg.src = 'ben_attack_left.png';
@@ -13,6 +13,19 @@ const coinImg = new Image(); coinImg.src = 'moeda.png';
 const crabLeftImg = new Image(); crabLeftImg.src = 'crab_left.png';
 const crabRightImg = new Image(); crabRightImg.src = 'crab_right.png';
 const treeImg = new Image(); treeImg.src = 'tree.png';
+
+// Imagens de Fundo das Fases (Ajustadas para .jfif)
+let bg1Loaded = false;
+const bg1Img = new Image(); bg1Img.src = 'tela1.jfif';
+bg1Img.onload = () => { bg1Loaded = true; };
+
+let bg2Loaded = false;
+const bg2Img = new Image(); bg2Img.src = 'tela2.jfif';
+bg2Img.onload = () => { bg2Loaded = true; };
+
+let bg3Loaded = false;
+const bg3Img = new Image(); bg3Img.src = 'tela3.jfif';
+bg3Img.onload = () => { bg3Loaded = true; };
 
 // Imagens da Fase 2
 let batLoaded = false;
@@ -36,8 +49,8 @@ waterfireImg.onload = () => { waterfireLoaded = true; };
 const ben = {
   x: 50,
   y: 200,
-  width: 90,
-  height: 90,
+  width: 75,
+  height: 75,
   velocityX: 0,
   velocityY: 0,
   speed: 5,
@@ -116,8 +129,7 @@ const initialBatPositions = [
 
 let batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true }));
 
-// --- ELEMENTOS DA FASE 3 (VULCÃO & LAVA REDUZIDA) ---
-// Largura da lava ajustada de 180-250px para 80-100px (fácil de pular!)
+// --- ELEMENTOS DA FASE 3 (VULCÃO & LAVA) ---
 const lavaPitsFase3 = [
   { x: 650, width: 80, height: 40, offset: 0 },
   { x: 1400, width: 90, height: 40, offset: 0 },
@@ -299,7 +311,6 @@ function update() {
   if (ben.x < 0) ben.x = 0;
   if (ben.x + ben.width > levelWidth) ben.x = levelWidth - ben.width;
 
-  // Fase 3: Deteção de Queda na Lava Reduzida
   if (currentLevel === 3) {
     lavaPitsFase3.forEach(pit => {
       pit.offset += 0.08;
@@ -329,7 +340,6 @@ function update() {
     });
   }
 
-  // Ataque
   if (ben.isAttacking) {
     ben.attackTimer--;
     if (ben.attackTimer <= 0) ben.isAttacking = false;
@@ -516,17 +526,26 @@ function draw() {
   ctx.save();
   ctx.translate(-cameraX, 0);
 
+  // Imagens de Fundo (.jfif)
   if (currentLevel === 1) {
-    ctx.fillStyle = '#0284c7'; ctx.fillRect(0, groundY - 30, levelWidth, 30);
-    ctx.fillStyle = '#fde047'; ctx.fillRect(0, groundY, levelWidth, 50);
+    if (bg1Loaded) {
+      ctx.drawImage(bg1Img, 0, 0, levelWidth, canvas.height);
+    } else {
+      ctx.fillStyle = '#0284c7'; ctx.fillRect(0, groundY - 30, levelWidth, 30);
+      ctx.fillStyle = '#fde047'; ctx.fillRect(0, groundY, levelWidth, 50);
+    }
 
     treesFase1.forEach(tree => {
       ctx.drawImage(treeImg, tree.x, groundY - tree.height, tree.width, tree.height);
     });
   } else if (currentLevel === 2) {
-    ctx.fillStyle = '#064e3b'; ctx.fillRect(0, 0, levelWidth, canvas.height);
-    ctx.fillStyle = '#15803d'; ctx.fillRect(0, groundY, levelWidth, 10);
-    ctx.fillStyle = '#78350f'; ctx.fillRect(0, groundY + 10, levelWidth, 40);
+    if (bg2Loaded) {
+      ctx.drawImage(bg2Img, 0, 0, levelWidth, canvas.height);
+    } else {
+      ctx.fillStyle = '#064e3b'; ctx.fillRect(0, 0, levelWidth, canvas.height);
+      ctx.fillStyle = '#15803d'; ctx.fillRect(0, groundY, levelWidth, 10);
+      ctx.fillStyle = '#78350f'; ctx.fillRect(0, groundY + 10, levelWidth, 40);
+    }
 
     cavesFase2.forEach(cave => {
       if (caveLoaded) {
@@ -537,8 +556,12 @@ function draw() {
       }
     });
   } else if (currentLevel === 3) {
-    ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, levelWidth, canvas.height);
-    ctx.fillStyle = '#262626'; ctx.fillRect(0, groundY, levelWidth, 50);
+    if (bg3Loaded) {
+      ctx.drawImage(bg3Img, 0, 0, levelWidth, canvas.height);
+    } else {
+      ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, levelWidth, canvas.height);
+      ctx.fillStyle = '#262626'; ctx.fillRect(0, groundY, levelWidth, 50);
+    }
 
     lavaPitsFase3.forEach(pit => {
       ctx.fillStyle = '#171717';
