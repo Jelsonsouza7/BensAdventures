@@ -2,7 +2,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Estado do Jogo
-let currentLevel = 1; // 1 = Praia, 2 = Selva, 3 = Vulcão
+let currentLevel = 1;
 let levelCompleted = false;
 
 // Carregar Imagens Base
@@ -14,7 +14,7 @@ const crabLeftImg = new Image(); crabLeftImg.src = 'crab_left.png';
 const crabRightImg = new Image(); crabRightImg.src = 'crab_right.png';
 const treeImg = new Image(); treeImg.src = 'tree.png';
 
-// Imagens da Fase 2 (Selva)
+// Imagens da Fase 2
 let batLoaded = false;
 const batImg = new Image(); batImg.src = 'bat.png';
 batImg.onload = () => { batLoaded = true; };
@@ -23,7 +23,7 @@ let caveLoaded = false;
 const caveImg = new Image(); caveImg.src = 'cave.png';
 caveImg.onload = () => { caveLoaded = true; };
 
-// Imagens da Fase 3 (Vulcão)
+// Imagens da Fase 3
 let fireballLoaded = false;
 const fireballImg = new Image(); fireballImg.src = 'fireball.png';
 fireballImg.onload = () => { fireballLoaded = true; };
@@ -116,16 +116,15 @@ const initialBatPositions = [
 
 let batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true }));
 
-// --- ELEMENTOS DA FASE 3 (VULCÃO & LAVA) ---
-// Poços de Lava no chão (waterfire.png vai animar dentro deles)
+// --- ELEMENTOS DA FASE 3 (VULCÃO & LAVA REDUZIDA) ---
+// Largura da lava ajustada de 180-250px para 80-100px (fácil de pular!)
 const lavaPitsFase3 = [
-  { x: 600, width: 180, height: 40, offset: 0 },
-  { x: 1400, width: 220, height: 40, offset: 0 },
-  { x: 2200, width: 200, height: 40, offset: 0 },
-  { x: 3000, width: 250, height: 40, offset: 0 }
+  { x: 650, width: 80, height: 40, offset: 0 },
+  { x: 1400, width: 90, height: 40, offset: 0 },
+  { x: 2200, width: 85, height: 40, offset: 0 },
+  { x: 3000, width: 100, height: 40, offset: 0 }
 ];
 
-// Bolas de Fogo Voadoras (fireball.png)
 const initialFireballPositions = [
   { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5 },
   { x: 1600, y: groundY - 140, width: 45, height: 45, speed: 4 },
@@ -172,7 +171,7 @@ function startLevel3() {
   ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
   cameraX = 0;
   currentItems = itemsFase3;
-  currentEnemies = []; // Sem caranguejos na lava
+  currentEnemies = [];
   resetFireballs();
 }
 
@@ -300,21 +299,18 @@ function update() {
   if (ben.x < 0) ben.x = 0;
   if (ben.x + ben.width > levelWidth) ben.x = levelWidth - ben.width;
 
-  // Lógica da Fase 3: Animação da Lava (waterfire) e Queda nos Poços
+  // Fase 3: Deteção de Queda na Lava Reduzida
   if (currentLevel === 3) {
     lavaPitsFase3.forEach(pit => {
-      // Animação contínua da lava se movendo dentro do poço
       pit.offset += 0.08;
 
-      // Se o Ben pisar dentro do poço de lava, morre na hora
-      if (ben.x + ben.width > pit.x &&
-          ben.x < pit.x + pit.width &&
+      if (ben.x + ben.width > pit.x + 10 &&
+          ben.x < pit.x + pit.width - 10 &&
           ben.y + ben.height >= groundY - 10) {
         ben.alive = false;
       }
     });
 
-    // Movimento das Bolas de Fogo Voadoras (fireball)
     fireballsFase3.forEach(fb => {
       if (fb.alive) {
         fb.x -= fb.speed;
@@ -333,7 +329,7 @@ function update() {
     });
   }
 
-  // Ataque de Espada
+  // Ataque
   if (ben.isAttacking) {
     ben.attackTimer--;
     if (ben.attackTimer <= 0) ben.isAttacking = false;
@@ -450,7 +446,7 @@ function update() {
   }
 }
 
-// Desenhar Sol (Fase 1)
+// Desenhar Sol
 function drawPixelSun() {
   const p = 5;
   const startX = canvas.width - 90;
@@ -470,7 +466,7 @@ function drawPixelSun() {
   ctx.fillRect(startX + p * 9, startY + p * 9, p * 2, p * 2);
 }
 
-// Desenhar Lua (Fase 2)
+// Desenhar Lua
 function drawPixelMoon() {
   const p = 5;
   const startX = canvas.width - 80;
@@ -497,7 +493,7 @@ function drawPixelMoon() {
   }
 }
 
-// Desenhar Sol de Fogo / Vulcão (Fase 3)
+// Desenhar Sol Vulcânico
 function drawPixelFireSun() {
   const p = 5;
   const startX = canvas.width - 90;
@@ -521,7 +517,6 @@ function draw() {
   ctx.translate(-cameraX, 0);
 
   if (currentLevel === 1) {
-    // Fase 1: Praia
     ctx.fillStyle = '#0284c7'; ctx.fillRect(0, groundY - 30, levelWidth, 30);
     ctx.fillStyle = '#fde047'; ctx.fillRect(0, groundY, levelWidth, 50);
 
@@ -529,7 +524,6 @@ function draw() {
       ctx.drawImage(treeImg, tree.x, groundY - tree.height, tree.width, tree.height);
     });
   } else if (currentLevel === 2) {
-    // Fase 2: Selva & Cavernas
     ctx.fillStyle = '#064e3b'; ctx.fillRect(0, 0, levelWidth, canvas.height);
     ctx.fillStyle = '#15803d'; ctx.fillRect(0, groundY, levelWidth, 10);
     ctx.fillStyle = '#78350f'; ctx.fillRect(0, groundY + 10, levelWidth, 40);
@@ -543,23 +537,19 @@ function draw() {
       }
     });
   } else if (currentLevel === 3) {
-    // Fase 3: Vulcão
-    ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, levelWidth, canvas.height); // Céu vermelho/escuro
-    ctx.fillStyle = '#262626'; ctx.fillRect(0, groundY, levelWidth, 50);       // Chão de pedra vulcânica
+    ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, levelWidth, canvas.height);
+    ctx.fillStyle = '#262626'; ctx.fillRect(0, groundY, levelWidth, 50);
 
-    // Desenhar Poços de Lava com a imagem 'waterfire.png' animada em movimento
     lavaPitsFase3.forEach(pit => {
-      // Abertura do buraco escuro
       ctx.fillStyle = '#171717';
       ctx.fillRect(pit.x, groundY, pit.width, 50);
 
-      const waveY = Math.sin(pit.offset) * 4; // Efeito de onda suave para cima e para baixo
-      const slideX = (pit.offset * 10) % 20;  // Movimento deslizante contínuo
+      const waveY = Math.sin(pit.offset) * 3;
+      const slideX = (pit.offset * 8) % 15;
 
       if (waterfireLoaded) {
-        ctx.drawImage(waterfireImg, pit.x - slideX, groundY + waveY, pit.width + 20, pit.height);
+        ctx.drawImage(waterfireImg, pit.x - slideX, groundY + waveY, pit.width + 15, pit.height);
       } else {
-        // Substituto caso a imagem ainda não tenha carregado
         ctx.fillStyle = '#dc2626';
         ctx.fillRect(pit.x, groundY + waveY, pit.width, pit.height);
       }
@@ -599,7 +589,7 @@ function draw() {
     });
   }
 
-  // Bolas de Fogo (fireball.png - Fase 3)
+  // Bolas de Fogo
   if (currentLevel === 3) {
     fireballsFase3.forEach(fb => {
       if (fb.alive) {
@@ -663,7 +653,7 @@ function draw() {
     ctx.textAlign = 'left';
   }
 
-  // Vitória / Transição
+  // Vitória
   if (levelCompleted) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
