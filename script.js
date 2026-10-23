@@ -1,9 +1,16 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Estado do Jogo
+// Estados do Jogo: 'menu', 'level_select', 'credits', 'playing'
+let gameState = 'menu';
 let currentLevel = 1; // 1 = Praia, 2 = Selva, 3 = Vulcão, 4 = Castelo, 5 = Templo da Aranha
 let levelCompleted = false;
+
+// Imagem do Menu Inicial
+let menuBgLoaded = false;
+const menuBgImg = new Image();
+menuBgImg.src = 'inicio.png';
+menuBgImg.onload = () => { menuBgLoaded = true; };
 
 // Carregar Imagens do Personagem e Objetos Base
 const benImg = new Image(); benImg.src = 'ben.png';
@@ -14,7 +21,7 @@ const crabLeftImg = new Image(); crabLeftImg.src = 'crab_left.png';
 const crabRightImg = new Image(); crabRightImg.src = 'crab_right.png';
 const treeImg = new Image(); treeImg.src = 'tree.png';
 
-// Imagem do Portal Personalizado (2x o tamanho do Ben: 180x180)
+// Imagem do Portal Personalizado (180x180)
 let portalLoaded = false;
 const portalImg = new Image();
 portalImg.src = 'portal.png';
@@ -68,10 +75,10 @@ let cameraX = 0;
 const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
-let globalWalkTimer = 0; // Utilizado para animar a caminhada dos inimigos
+let globalWalkTimer = 0;
 
 // Portal do Fim da Fase (180px x 180px)
-const portal = { x: 3800, y: groundY - 180, width: 180, height: 180 };
+const portal = { x: 3750, y: groundY - 180, width: 180, height: 180 };
 
 // --- ELEMENTOS DA FASE 1 (PRAIA) ---
 const treesFase1 = [
@@ -93,7 +100,6 @@ const itemsFase1 = [
   { x: 3350, y: groundY - 35, size: 32, collected: false }
 ];
 
-// 7 Caranguejos
 const enemiesFase1 = [
   { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, alive: true },
   { x: 1050, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 980, maxX: 1250, alive: true },
@@ -123,7 +129,6 @@ const itemsFase2 = [
   { x: 3500, y: groundY - 35, size: 32, collected: false }
 ];
 
-// 5 Morcegos
 const initialBatPositions = [
   { x: 900, y: groundY - 110, width: 50, height: 35, speed: 3 },
   { x: 1500, y: groundY - 120, width: 50, height: 35, speed: 3.2 },
@@ -142,7 +147,6 @@ const lavaPitsFase3 = [
   { x: 3000, width: 100, height: 40, offset: 0 }
 ];
 
-// 5 Bolas de Fogo
 const initialFireballPositions = [
   { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5 },
   { x: 1400, y: groundY - 130, width: 45, height: 45, speed: 3.8 },
@@ -162,7 +166,6 @@ const itemsFase3 = [
 ];
 
 // --- ELEMENTOS DA FASE 4 (CASTELO & ZUMBIS) ---
-// 5 Zumbis
 const initialZombiePositions = [
   { x: 700, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
   { x: 1400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
@@ -182,7 +185,6 @@ const itemsFase4 = [
 ];
 
 // --- ELEMENTOS DA FASE 5 (TEMPLO DA ARANHA) ---
-// 5 Aranhas
 const initialSpiderPositions = [
   { x: 700, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 550, maxX: 900, isAttacking: false, attackCooldown: 0, alive: true },
   { x: 1400, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1200, maxX: 1600, isAttacking: false, attackCooldown: 0, alive: true },
@@ -213,58 +215,36 @@ function resetSpiders() {
   spiderWebsFase5 = [];
 }
 
-function startLevel2() {
-  currentLevel = 2; levelCompleted = false;
+function loadLevel(lvl) {
+  currentLevel = lvl; levelCompleted = false;
   ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
-  cameraX = 0; currentItems = itemsFase2; currentEnemies = enemiesFase1;
-  resetBats();
-}
+  cameraX = 0;
 
-function startLevel3() {
-  currentLevel = 3; levelCompleted = false;
-  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
-  cameraX = 0; currentItems = itemsFase3; currentEnemies = [];
-  resetFireballs();
-}
+  if (lvl === 1) { currentItems = itemsFase1; currentEnemies = enemiesFase1; }
+  else if (lvl === 2) { currentItems = itemsFase2; currentEnemies = enemiesFase1; resetBats(); }
+  else if (lvl === 3) { currentItems = itemsFase3; currentEnemies = []; resetFireballs(); }
+  else if (lvl === 4) { currentItems = itemsFase4; currentEnemies = []; resetZombies(); }
+  else if (lvl === 5) { currentItems = itemsFase5; currentEnemies = []; resetSpiders(); }
 
-function startLevel4() {
-  currentLevel = 4; levelCompleted = false;
-  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
-  cameraX = 0; currentItems = itemsFase4; currentEnemies = [];
-  resetZombies();
-}
-
-function startLevel5() {
-  currentLevel = 5; levelCompleted = false;
-  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
-  cameraX = 0; currentItems = itemsFase5; currentEnemies = [];
-  resetSpiders();
+  gameState = 'playing';
 }
 
 function restartGame() {
-  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
-  ben.score = 0; levelCompleted = false;
-
-  itemsFase1.forEach(item => item.collected = false);
-  enemiesFase1.forEach(enemy => enemy.alive = true);
-
+  ben.score = 0;
+  itemsFase1.forEach(item => item.collected = false); enemiesFase1.forEach(enemy => enemy.alive = true);
   itemsFase2.forEach(item => item.collected = false); resetBats();
   itemsFase3.forEach(item => item.collected = false); resetFireballs();
   itemsFase4.forEach(item => item.collected = false); resetZombies();
   itemsFase5.forEach(item => item.collected = false); resetSpiders();
-
-  if (currentLevel === 2) startLevel2();
-  if (currentLevel === 3) startLevel3();
-  if (currentLevel === 4) startLevel4();
-  if (currentLevel === 5) startLevel5();
+  loadLevel(currentLevel);
 }
 
 function handleAction() {
+  if (gameState !== 'playing') return false;
+
   if (levelCompleted) {
-    if (currentLevel === 1) { startLevel2(); return true; }
-    if (currentLevel === 2) { startLevel3(); return true; }
-    if (currentLevel === 3) { startLevel4(); return true; }
-    if (currentLevel === 4) { startLevel5(); return true; }
+    if (currentLevel < 5) { loadLevel(currentLevel + 1); return true; }
+    else { gameState = 'menu'; return true; }
   }
   if (!ben.alive) {
     restartGame();
@@ -273,10 +253,114 @@ function handleAction() {
   return false;
 }
 
+// Botões do Menu Inicial (Ajustados em altura para centralizar no layout)
+const menuButtons = [
+  { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => loadLevel(1) },
+  { label: 'FASES', x: canvas.width / 2 - 110, y: 255, width: 220, height: 55, action: () => gameState = 'level_select' },
+  { label: 'CRÉDITOS', x: canvas.width / 2 - 110, y: 330, width: 220, height: 55, action: () => gameState = 'credits' }
+];
+
+// Função auxiliar para desenhar botões Tecnológicos em Azul Royal
+function drawTechButton(x, y, width, height, label) {
+  const cut = 12; // Tamanho do chanfro nos cantos
+
+  // Criar Gradiente Azul Royal
+  const grad = ctx.createLinearGradient(x, y, x, y + height);
+  grad.addColorStop(0, '#0050d0');
+  grad.addColorStop(0.5, '#002060');
+  grad.addColorStop(1, '#001035');
+
+  // Desenhar corpo chanfrado do botão
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + cut, y);
+  ctx.lineTo(x + width - cut, y);
+  ctx.lineTo(x + width, y + cut);
+  ctx.lineTo(x + width, y + height - cut);
+  ctx.lineTo(x + width - cut, y + height);
+  ctx.lineTo(x + cut, y + height);
+  ctx.lineTo(x, y + height - cut);
+  ctx.lineTo(x, y + cut);
+  ctx.closePath();
+
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Borda Neon Cyan/Azul
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#00ffff';
+  ctx.shadowColor = '#00ffff';
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+
+  // Detalhes decorativos nas laterais (linhas de circuito)
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#80e5ff';
+  ctx.beginPath();
+  ctx.moveTo(x + 5, y + height / 2 - 8);
+  ctx.lineTo(x + 5, y + height / 2 + 8);
+  ctx.moveTo(x + width - 5, y + height / 2 - 8);
+  ctx.lineTo(x + width - 5, y + height / 2 + 8);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Texto do Botão
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x + width / 2, y + height / 2 + 7);
+}
+
+// Tratar Cliques e Toques nos Menus
+function handleMenuClick(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = (clientX - rect.left) * (canvas.width / rect.width);
+  const clickY = (clientY - rect.top) * (canvas.height / rect.height);
+
+  if (gameState === 'menu') {
+    menuButtons.forEach(btn => {
+      if (clickX >= btn.x && clickX <= btn.x + btn.width && clickY >= btn.y && clickY <= btn.y + btn.height) {
+        btn.action();
+      }
+    });
+  } else if (gameState === 'level_select') {
+    for (let i = 1; i <= 5; i++) {
+      const btnX = canvas.width / 2 - 150 + ((i - 1) % 3) * 110;
+      const btnY = 220 + Math.floor((i - 1) / 3) * 80;
+      if (clickX >= btnX && clickX <= btnX + 80 && clickY >= btnY && clickY <= btnY + 50) {
+        loadLevel(i);
+      }
+    }
+    if (clickX >= canvas.width / 2 - 60 && clickX <= canvas.width / 2 + 60 && clickY >= 380 && clickY <= 420) {
+      gameState = 'menu';
+    }
+  } else if (gameState === 'credits') {
+    if (clickX >= canvas.width / 2 - 60 && clickX <= canvas.width / 2 + 60 && clickY >= 380 && clickY <= 420) {
+      gameState = 'menu';
+    }
+  }
+}
+
+canvas.addEventListener('click', (e) => {
+  if (gameState !== 'playing') {
+    handleMenuClick(e.clientX, e.clientY);
+  } else {
+    handleAction();
+  }
+});
+
+canvas.addEventListener('touchstart', (e) => {
+  if (gameState !== 'playing' && e.touches.length > 0) {
+    handleMenuClick(e.touches[0].clientX, e.touches[0].clientY);
+  }
+});
+
 // Controles Teclado
 const keys = { right: false, left: false };
 
 window.addEventListener('keydown', (e) => {
+  if (gameState !== 'playing') return;
   if (handleAction()) return;
 
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
@@ -305,16 +389,16 @@ const btnJump = document.getElementById('btnJump');
 const btnAttack = document.getElementById('btnAttack');
 
 if (btnLeft && btnRight && btnJump) {
-  btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive) keys.left = true; });
+  btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.left = true; });
   btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
 
-  btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive) keys.right = true; });
+  btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.right = true; });
   btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
 
   btnJump.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (handleAction()) return;
-    if (ben.grounded) {
+    if (ben.grounded && gameState === 'playing') {
       ben.velocityY = ben.jumpForce;
       ben.grounded = false;
     }
@@ -325,20 +409,18 @@ if (btnAttack) {
   btnAttack.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (handleAction()) return;
-    if (!ben.isAttacking && ben.alive) {
+    if (!ben.isAttacking && ben.alive && gameState === 'playing') {
       ben.isAttacking = true;
       ben.attackTimer = 15;
     }
   });
 }
 
-canvas.addEventListener('click', () => { handleAction(); });
-
 // Lógica de Atualização
 function update() {
-  if (levelCompleted || !ben.alive) return;
+  if (gameState !== 'playing' || levelCompleted || !ben.alive) return;
 
-  globalWalkTimer += 0.2; // Incremento do temporizador de caminhada
+  globalWalkTimer += 0.2;
 
   if (keys.right) {
     ben.velocityX = ben.speed;
@@ -565,15 +647,84 @@ function update() {
     }
   });
 
-  if (ben.x + ben.width > portal.x && ben.x < portal.x + portal.width && ben.y + ben.height > portal.y) {
+  // O Ben precisa estar EM CIMA / DENTRO do Portal para passar de fase
+  const benCenterX = ben.x + ben.width / 2;
+  const benCenterY = ben.y + ben.height / 2;
+  if (benCenterX >= portal.x + 30 && benCenterX <= portal.x + portal.width - 30 &&
+      benCenterY >= portal.y + 30 && benCenterY <= portal.y + portal.height) {
     levelCompleted = true;
   }
 }
 
-// Desenhar Cenas
+// Desenhar Cenas de Jogo e Menus
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // --- MENU INICIAL ---
+  if (gameState === 'menu') {
+    if (menuBgLoaded) {
+      ctx.drawImage(menuBgImg, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = '#0a0f24';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Desenhar Botões Tecnológicos em Azul Royal
+    menuButtons.forEach(btn => {
+      drawTechButton(btn.x, btn.y, btn.width, btn.height, btn.label);
+    });
+
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // --- MENU DE SELEÇÃO DE FASES ---
+  if (gameState === 'level_select') {
+    ctx.fillStyle = '#0a0f24';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ESCOLHA A FASE', canvas.width / 2, 120);
+
+    for (let i = 1; i <= 5; i++) {
+      const btnX = canvas.width / 2 - 150 + ((i - 1) % 3) * 110;
+      const btnY = 200 + Math.floor((i - 1) / 3) * 80;
+
+      drawTechButton(btnX, btnY, 80, 50, `${i}`);
+    }
+
+    // Botão Voltar
+    drawTechButton(canvas.width / 2 - 70, 380, 140, 45, 'VOLTAR');
+
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // --- CRÉDITOS ---
+  if (gameState === 'credits') {
+    ctx.fillStyle = '#0a0f24';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('CRÉDITOS', canvas.width / 2, 120);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Arial';
+    ctx.fillText("Desenvolvido para Ben's Adventures", canvas.width / 2, 200);
+    ctx.fillText("Arte, Código e Design Criativo", canvas.width / 2, 250);
+
+    // Botão Voltar
+    drawTechButton(canvas.width / 2 - 70, 380, 140, 45, 'VOLTAR');
+
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // --- TELA DE JOGO DENTRO DA FASE ---
   ctx.save();
   ctx.translate(-cameraX, 0);
 
@@ -602,7 +753,7 @@ function draw() {
     else { ctx.fillStyle = '#312e81'; ctx.fillRect(0, 0, levelWidth, canvas.height); ctx.fillStyle = '#1e293b'; ctx.fillRect(0, groundY, levelWidth, 50); }
   }
 
-  // Desenhar Imagem do Portal (180px x 180px)
+  // Desenhar Imagem do Portal
   if (portalLoaded) {
     ctx.drawImage(portalImg, portal.x, portal.y, portal.width, portal.height);
   } else {
@@ -613,7 +764,7 @@ function draw() {
   // Moedas
   currentItems.forEach(item => { if (!item.collected) ctx.drawImage(coinImg, item.x, item.y, item.size, item.size); });
 
-  // Caranguejos com Efeito de Passos/Caminhada
+  // Caranguejos
   currentEnemies.forEach((enemy, index) => {
     if (enemy.alive) {
       const currentCrabImg = enemy.direction === 1 ? crabRightImg : crabLeftImg;
@@ -632,7 +783,7 @@ function draw() {
     fireballsFase3.forEach(fb => { if (fb.alive && fireballLoaded) ctx.drawImage(fireballImg, fb.x, fb.y, fb.width, fb.height); });
   }
 
-  // Zumbis com Efeito de Passos/Caminhada (Fase 4)
+  // Zumbis (Fase 4)
   if (currentLevel === 4) {
     zombiesFase4.forEach((zombie, index) => {
       if (zombie.alive) {
@@ -650,7 +801,7 @@ function draw() {
     });
   }
 
-  // Aranha com Efeito de Passos/Caminhada e Teias (Fase 5)
+  // Aranha e Teias (Fase 5)
   if (currentLevel === 5) {
     spidersFase5.forEach((spider, index) => {
       if (spider.alive) {
@@ -701,7 +852,7 @@ function draw() {
 
   ctx.restore();
 
-  // Interface Fixa (Sem sol/lua)
+  // Interface Superior Fixa
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px Arial';
   ctx.fillText(`Fase: ${currentLevel} | Pontos: ${ben.score}`, 20, 30);
@@ -721,22 +872,10 @@ function draw() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fde047'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center';
 
-    if (currentLevel === 1) {
-      ctx.fillText('FASE 1 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
+    if (currentLevel < 5) {
+      ctx.fillText(`FASE ${currentLevel} CONCLUÍDA!`, canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 2 (Selva)!', canvas.width / 2, canvas.height / 2 + 30);
-    } else if (currentLevel === 2) {
-      ctx.fillText('FASE 2 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 3 (Vulcão)!', canvas.width / 2, canvas.height / 2 + 30);
-    } else if (currentLevel === 3) {
-      ctx.fillText('FASE 3 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 4 (Castelo)!', canvas.width / 2, canvas.height / 2 + 30);
-    } else if (currentLevel === 4) {
-      ctx.fillText('FASE 4 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 5 (Templo da Aranha)!', canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText(`Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase ${currentLevel + 1}!`, canvas.width / 2, canvas.height / 2 + 30);
     } else {
       ctx.fillText('PARABÉNS! ZEROU O JOGO COMPLETO!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
