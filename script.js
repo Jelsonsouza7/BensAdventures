@@ -45,7 +45,7 @@ let spiderRightLoaded = false; const spiderRightImg = new Image(); spiderRightIm
 let spiderAttackLoaded = false; const spiderAttackImg = new Image(); spiderAttackImg.src = 'spider_atack.png'; spiderAttackImg.onload = () => { spiderAttackLoaded = true; };
 let webLoaded = false; const webImg = new Image(); webImg.src = 'teia.png'; webImg.onload = () => { webLoaded = true; };
 
-// Personagem Principal: BEN (width: 90, height: 90)
+// Personagem Principal: BEN
 const ben = {
   x: 50,
   y: 200,
@@ -68,8 +68,9 @@ let cameraX = 0;
 const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
+let globalWalkTimer = 0; // Utilizado para animar a caminhada dos inimigos
 
-// Portal do Fim da Fase (2x o tamanho do Ben: 180px x 180px)
+// Portal do Fim da Fase (180px x 180px)
 const portal = { x: 3800, y: groundY - 180, width: 180, height: 180 };
 
 // --- ELEMENTOS DA FASE 1 (PRAIA) ---
@@ -92,13 +93,15 @@ const itemsFase1 = [
   { x: 3350, y: groundY - 35, size: 32, collected: false }
 ];
 
+// 7 Caranguejos
 const enemiesFase1 = [
   { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, alive: true },
   { x: 1050, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 980, maxX: 1250, alive: true },
   { x: 1600, y: groundY - 45, width: 60, height: 45, speed: 2, direction: -1, minX: 1400, maxX: 1750, alive: true },
   { x: 2150, y: groundY - 45, width: 60, height: 45, speed: 3, direction: 1, minX: 1950, maxX: 2300, alive: true },
   { x: 2800, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 2600, maxX: 2950, alive: true },
-  { x: 3400, y: groundY - 45, width: 60, height: 45, speed: 3, direction: -1, minX: 3200, maxX: 3600, alive: true }
+  { x: 3200, y: groundY - 45, width: 60, height: 45, speed: 2.8, direction: 1, minX: 3000, maxX: 3350, alive: true },
+  { x: 3600, y: groundY - 45, width: 60, height: 45, speed: 3, direction: -1, minX: 3400, maxX: 3750, alive: true }
 ];
 
 // --- ELEMENTOS DA FASE 2 (SELVA & CAVERNAS) ---
@@ -120,10 +123,12 @@ const itemsFase2 = [
   { x: 3500, y: groundY - 35, size: 32, collected: false }
 ];
 
+// 5 Morcegos
 const initialBatPositions = [
   { x: 900, y: groundY - 110, width: 50, height: 35, speed: 3 },
-  { x: 1700, y: groundY - 130, width: 50, height: 35, speed: 3.5 },
-  { x: 2500, y: groundY - 100, width: 50, height: 35, speed: 4 },
+  { x: 1500, y: groundY - 120, width: 50, height: 35, speed: 3.2 },
+  { x: 2100, y: groundY - 130, width: 50, height: 35, speed: 3.5 },
+  { x: 2700, y: groundY - 100, width: 50, height: 35, speed: 4 },
   { x: 3300, y: groundY - 140, width: 50, height: 35, speed: 3.5 }
 ];
 
@@ -137,10 +142,12 @@ const lavaPitsFase3 = [
   { x: 3000, width: 100, height: 40, offset: 0 }
 ];
 
+// 5 Bolas de Fogo
 const initialFireballPositions = [
   { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5 },
-  { x: 1600, y: groundY - 140, width: 45, height: 45, speed: 4 },
-  { x: 2400, y: groundY - 110, width: 45, height: 45, speed: 4.5 },
+  { x: 1400, y: groundY - 130, width: 45, height: 45, speed: 3.8 },
+  { x: 2000, y: groundY - 140, width: 45, height: 45, speed: 4 },
+  { x: 2600, y: groundY - 110, width: 45, height: 45, speed: 4.5 },
   { x: 3200, y: groundY - 150, width: 45, height: 45, speed: 4 }
 ];
 
@@ -155,10 +162,12 @@ const itemsFase3 = [
 ];
 
 // --- ELEMENTOS DA FASE 4 (CASTELO & ZUMBIS) ---
+// 5 Zumbis
 const initialZombiePositions = [
-  { x: 800, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
-  { x: 1700, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
-  { x: 2600, y: groundY - 90, width: 90, height: 90, speed: 2.2, direction: -1, turnDelay: 0, alive: true },
+  { x: 700, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
+  { x: 1400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
+  { x: 2100, y: groundY - 90, width: 90, height: 90, speed: 2.1, direction: -1, turnDelay: 0, alive: true },
+  { x: 2800, y: groundY - 90, width: 90, height: 90, speed: 2.2, direction: -1, turnDelay: 0, alive: true },
   { x: 3400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true }
 ];
 
@@ -173,15 +182,17 @@ const itemsFase4 = [
 ];
 
 // --- ELEMENTOS DA FASE 5 (TEMPLO DA ARANHA) ---
+// 5 Aranhas
 const initialSpiderPositions = [
-  { x: 900, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 750, maxX: 1100, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 1800, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1600, maxX: 2000, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 2700, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2500, maxX: 2900, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 700, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 550, maxX: 900, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 1400, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1200, maxX: 1600, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 2100, y: groundY - 70, width: 90, height: 70, speed: 2.2, direction: 1, minX: 1900, maxX: 2300, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 2800, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2600, maxX: 3000, isAttacking: false, attackCooldown: 0, alive: true },
   { x: 3400, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: -1, minX: 3200, maxX: 3600, isAttacking: false, attackCooldown: 0, alive: true }
 ];
 
 let spidersFase5 = initialSpiderPositions.map(s => ({ ...s }));
-let spiderWebsFase5 = []; // Projéteis de teia em jogo
+let spiderWebsFase5 = [];
 
 const itemsFase5 = [
   { x: 600, y: groundY - 35, size: 32, collected: false },
@@ -327,6 +338,8 @@ canvas.addEventListener('click', () => { handleAction(); });
 function update() {
   if (levelCompleted || !ben.alive) return;
 
+  globalWalkTimer += 0.2; // Incremento do temporizador de caminhada
+
   if (keys.right) {
     ben.velocityX = ben.speed;
     ben.facing = 'right';
@@ -412,12 +425,10 @@ function update() {
       if (spider.alive) {
         const distanceToBen = Math.abs(ben.x - spider.x);
 
-        // Se o Ben estiver próximo (alcance de 350px), a aranha arma o ataque
         if (distanceToBen < 350) {
           spider.isAttacking = true;
-          spider.direction = ben.x > spider.x ? 1 : -1; // Olha para o Ben
+          spider.direction = ben.x > spider.x ? 1 : -1;
 
-          // Disparar teia a cada tempo de recarga
           if (spider.attackCooldown <= 0) {
             spiderWebsFase5.push({
               x: spider.direction === 1 ? spider.x + spider.width : spider.x - 40,
@@ -427,7 +438,7 @@ function update() {
               speed: 6 * spider.direction,
               alive: true
             });
-            spider.attackCooldown = 90; // Recarga entre tiros (~1.5 seg)
+            spider.attackCooldown = 90;
           }
         } else {
           spider.isAttacking = false;
@@ -439,7 +450,6 @@ function update() {
 
         if (spider.attackCooldown > 0) spider.attackCooldown--;
 
-        // Colisão direta com o corpo da aranha
         if (ben.x < spider.x + spider.width - 10 &&
             ben.x + ben.width > spider.x + 10 &&
             ben.y < spider.y + spider.height &&
@@ -449,12 +459,10 @@ function update() {
       }
     });
 
-    // Atualização dos Projéteis de Teia
     spiderWebsFase5.forEach(web => {
       if (web.alive) {
         web.x += web.speed;
 
-        // Colisão da Teia com o Ben (Se encostar morre!)
         if (ben.x < web.x + web.width &&
             ben.x + ben.width > web.x &&
             ben.y < web.y + web.height &&
@@ -462,7 +470,6 @@ function update() {
           ben.alive = false;
         }
 
-        // Remover teia se sair da tela
         if (web.x < cameraX - 100 || web.x > cameraX + canvas.width + 100) {
           web.alive = false;
         }
@@ -470,7 +477,7 @@ function update() {
     });
   }
 
-  // Ataque de Espada do Ben
+  // Ataque de Espada
   if (ben.isAttacking) {
     ben.attackTimer--;
     if (ben.attackTimer <= 0) ben.isAttacking = false;
@@ -563,36 +570,6 @@ function update() {
   }
 }
 
-// Desenhar Sol/Lua Pixelados
-function drawPixelSun() {
-  const p = 5; const startX = canvas.width - 90; const startY = 20;
-  ctx.fillStyle = '#facc15'; ctx.fillRect(startX + p * 2, startY + p * 2, p * 8, p * 8);
-  ctx.fillRect(startX + p * 5, startY, p * 2, p * 2); ctx.fillRect(startX + p * 5, startY + p * 10, p * 2, p * 2);
-  ctx.fillRect(startX, startY + p * 5, p * 2, p * 2); ctx.fillRect(startX + p * 10, startY + p * 5, p * 2, p * 2);
-}
-
-function drawPixelMoon() {
-  const p = 5; const startX = canvas.width - 80; const startY = 20;
-  ctx.fillStyle = '#e2e8f0';
-  const moonMatrix = [[0, 0, 1, 1, 1, 0],[0, 1, 1, 1, 0, 0],[1, 1, 1, 0, 0, 0],[1, 1, 1, 0, 0, 0],[1, 1, 1, 1, 0, 0],[0, 1, 1, 1, 1, 0],[0, 0, 1, 1, 1, 0]];
-  for (let r = 0; r < moonMatrix.length; r++) {
-    for (let c = 0; c < moonMatrix[r].length; c++) {
-      if (moonMatrix[r][c] === 1) ctx.fillRect(startX + c * p, startY + r * p, p, p);
-    }
-  }
-}
-
-function drawPixelFireSun() {
-  const p = 5; const startX = canvas.width - 90; const startY = 20;
-  ctx.fillStyle = '#ef4444'; ctx.fillRect(startX + p * 2, startY + p * 2, p * 8, p * 8);
-  ctx.fillStyle = '#f97316'; ctx.fillRect(startX + p * 5, startY, p * 2, p * 2); ctx.fillRect(startX + p * 5, startY + p * 10, p * 2, p * 2);
-}
-
-function drawPixelStar() {
-  const p = 5; const startX = canvas.width - 80; const startY = 20;
-  ctx.fillStyle = '#fde047'; ctx.fillRect(startX + p * 3, startY, p * 2, p * 8); ctx.fillRect(startX, startY + p * 3, p * 8, p * 2);
-}
-
 // Desenhar Cenas
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -625,7 +602,7 @@ function draw() {
     else { ctx.fillStyle = '#312e81'; ctx.fillRect(0, 0, levelWidth, canvas.height); ctx.fillStyle = '#1e293b'; ctx.fillRect(0, groundY, levelWidth, 50); }
   }
 
-  // Desenhar Imagem do Portal (2x o tamanho do Ben: 180px x 180px)
+  // Desenhar Imagem do Portal (180px x 180px)
   if (portalLoaded) {
     ctx.drawImage(portalImg, portal.x, portal.y, portal.width, portal.height);
   } else {
@@ -636,11 +613,12 @@ function draw() {
   // Moedas
   currentItems.forEach(item => { if (!item.collected) ctx.drawImage(coinImg, item.x, item.y, item.size, item.size); });
 
-  // Caranguejos
-  currentEnemies.forEach(enemy => {
+  // Caranguejos com Efeito de Passos/Caminhada
+  currentEnemies.forEach((enemy, index) => {
     if (enemy.alive) {
       const currentCrabImg = enemy.direction === 1 ? crabRightImg : crabLeftImg;
-      ctx.drawImage(currentCrabImg, enemy.x, enemy.y, enemy.width, enemy.height);
+      const walkBounce = Math.abs(Math.sin(globalWalkTimer * 2 + index)) * 4;
+      ctx.drawImage(currentCrabImg, enemy.x, enemy.y - walkBounce, enemy.width, enemy.height);
     }
   });
 
@@ -654,33 +632,35 @@ function draw() {
     fireballsFase3.forEach(fb => { if (fb.alive && fireballLoaded) ctx.drawImage(fireballImg, fb.x, fb.y, fb.width, fb.height); });
   }
 
-  // Zumbis Perseguidores (Fase 4)
+  // Zumbis com Efeito de Passos/Caminhada (Fase 4)
   if (currentLevel === 4) {
-    zombiesFase4.forEach(zombie => {
+    zombiesFase4.forEach((zombie, index) => {
       if (zombie.alive) {
         const currentZombieImg = zombie.direction === 1 ? zombieRightImg : zombieLeftImg;
         const isLoaded = zombie.direction === 1 ? zombieRightLoaded : zombieLeftLoaded;
+        const walkBounce = Math.abs(Math.sin(globalWalkTimer * 1.5 + index)) * 5;
 
         if (isLoaded) {
-          ctx.drawImage(currentZombieImg, zombie.x, zombie.y, zombie.width, zombie.height);
+          ctx.drawImage(currentZombieImg, zombie.x, zombie.y - walkBounce, zombie.width, zombie.height);
         } else {
           ctx.fillStyle = '#15803d';
-          ctx.fillRect(zombie.x, zombie.y, zombie.width, zombie.height);
+          ctx.fillRect(zombie.x, zombie.y - walkBounce, zombie.width, zombie.height);
         }
       }
     });
   }
 
-  // Aranha e Teias (Fase 5)
+  // Aranha com Efeito de Passos/Caminhada e Teias (Fase 5)
   if (currentLevel === 5) {
-    spidersFase5.forEach(spider => {
+    spidersFase5.forEach((spider, index) => {
       if (spider.alive) {
         let currentSpiderImg = spider.direction === 1 ? spiderRightImg : spiderLeftImg;
         if (spider.isAttacking && spiderAttackLoaded) {
           currentSpiderImg = spiderAttackImg;
         }
 
-        ctx.drawImage(currentSpiderImg, spider.x, spider.y, spider.width, spider.height);
+        const walkBounce = spider.isAttacking ? 0 : Math.abs(Math.sin(globalWalkTimer * 2.5 + index)) * 4;
+        ctx.drawImage(currentSpiderImg, spider.x, spider.y - walkBounce, spider.width, spider.height);
       }
     });
 
@@ -721,12 +701,7 @@ function draw() {
 
   ctx.restore();
 
-  // Interface Fixa
-  if (currentLevel === 1) drawPixelSun();
-  else if (currentLevel === 2) drawPixelMoon();
-  else if (currentLevel === 3) drawPixelFireSun();
-  else if (currentLevel === 4 || currentLevel === 5) drawPixelStar();
-
+  // Interface Fixa (Sem sol/lua)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px Arial';
   ctx.fillText(`Fase: ${currentLevel} | Pontos: ${ben.score}`, 20, 30);
