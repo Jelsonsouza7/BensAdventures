@@ -2,7 +2,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Estado do Jogo
-let currentLevel = 1; // 1 = Praia, 2 = Selva, 3 = Vulcão, 4 = Castelo/Céu
+let currentLevel = 1; // 1 = Praia, 2 = Selva, 3 = Vulcão, 4 = Castelo, 5 = Templo da Aranha
 let levelCompleted = false;
 
 // Carregar Imagens do Personagem e Objetos Base
@@ -14,7 +14,7 @@ const crabLeftImg = new Image(); crabLeftImg.src = 'crab_left.png';
 const crabRightImg = new Image(); crabRightImg.src = 'crab_right.png';
 const treeImg = new Image(); treeImg.src = 'tree.png';
 
-// Imagem do Portal Personalizado (portal.png)
+// Imagem do Portal Personalizado (2x o tamanho do Ben: 180x180)
 let portalLoaded = false;
 const portalImg = new Image();
 portalImg.src = 'portal.png';
@@ -25,6 +25,7 @@ let bg1Loaded = false; const bg1Img = new Image(); bg1Img.src = 'tela1.jfif'; bg
 let bg2Loaded = false; const bg2Img = new Image(); bg2Img.src = 'tela2.jfif'; bg2Img.onload = () => { bg2Loaded = true; };
 let bg3Loaded = false; const bg3Img = new Image(); bg3Img.src = 'tela3.jfif'; bg3Img.onload = () => { bg3Loaded = true; };
 let bg4Loaded = false; const bg4Img = new Image(); bg4Img.src = 'tela4.jfif'; bg4Img.onload = () => { bg4Loaded = true; };
+let bg5Loaded = false; const bg5Img = new Image(); bg5Img.src = 'tela5.jfif'; bg5Img.onload = () => { bg5Loaded = true; };
 
 // Imagens da Fase 2
 let batLoaded = false; const batImg = new Image(); batImg.src = 'bat.png'; batImg.onload = () => { batLoaded = true; };
@@ -34,11 +35,17 @@ let caveLoaded = false; const caveImg = new Image(); caveImg.src = 'cave.png'; c
 let fireballLoaded = false; const fireballImg = new Image(); fireballImg.src = 'fireball.png'; fireballImg.onload = () => { fireballLoaded = true; };
 let waterfireLoaded = false; const waterfireImg = new Image(); waterfireImg.src = 'waterfire.png'; waterfireImg.onload = () => { waterfireLoaded = true; };
 
-// Imagens do Zumbi (Fase 4: zombie_left.png e zombie_right.png)
+// Imagens do Zumbi (Fase 4)
 let zombieLeftLoaded = false; const zombieLeftImg = new Image(); zombieLeftImg.src = 'zombie_left.png'; zombieLeftImg.onload = () => { zombieLeftLoaded = true; };
 let zombieRightLoaded = false; const zombieRightImg = new Image(); zombieRightImg.src = 'zombie_right.png'; zombieRightImg.onload = () => { zombieRightLoaded = true; };
 
-// Personagem Principal: BEN (Pulo ajustado para -13.5)
+// Imagens da Aranha e Teia (Fase 5)
+let spiderLeftLoaded = false; const spiderLeftImg = new Image(); spiderLeftImg.src = 'spider_left.png'; spiderLeftImg.onload = () => { spiderLeftLoaded = true; };
+let spiderRightLoaded = false; const spiderRightImg = new Image(); spiderRightImg.src = 'spider_right.png'; spiderRightImg.onload = () => { spiderRightLoaded = true; };
+let spiderAttackLoaded = false; const spiderAttackImg = new Image(); spiderAttackImg.src = 'spider_atack.png'; spiderAttackImg.onload = () => { spiderAttackLoaded = true; };
+let webLoaded = false; const webImg = new Image(); webImg.src = 'teia.png'; webImg.onload = () => { webLoaded = true; };
+
+// Personagem Principal: BEN (width: 90, height: 90)
 const ben = {
   x: 50,
   y: 200,
@@ -62,8 +69,8 @@ const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
 
-// Portal do Fim da Fase (Usando portal.png)
-const portal = { x: 3880, y: groundY - 100, width: 70, height: 100 };
+// Portal do Fim da Fase (2x o tamanho do Ben: 180px x 180px)
+const portal = { x: 3800, y: groundY - 180, width: 180, height: 180 };
 
 // --- ELEMENTOS DA FASE 1 (PRAIA) ---
 const treesFase1 = [
@@ -147,7 +154,7 @@ const itemsFase3 = [
   { x: 3500, y: groundY - 35, size: 32, collected: false }
 ];
 
-// --- ELEMENTOS DA FASE 4 (CASTELO NAS NUVENS & ZUMBIS) ---
+// --- ELEMENTOS DA FASE 4 (CASTELO & ZUMBIS) ---
 const initialZombiePositions = [
   { x: 800, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
   { x: 1700, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
@@ -165,19 +172,34 @@ const itemsFase4 = [
   { x: 3600, y: groundY - 35, size: 32, collected: false }
 ];
 
+// --- ELEMENTOS DA FASE 5 (TEMPLO DA ARANHA) ---
+const initialSpiderPositions = [
+  { x: 900, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 750, maxX: 1100, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 1800, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1600, maxX: 2000, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 2700, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2500, maxX: 2900, isAttacking: false, attackCooldown: 0, alive: true },
+  { x: 3400, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: -1, minX: 3200, maxX: 3600, isAttacking: false, attackCooldown: 0, alive: true }
+];
+
+let spidersFase5 = initialSpiderPositions.map(s => ({ ...s }));
+let spiderWebsFase5 = []; // Projéteis de teia em jogo
+
+const itemsFase5 = [
+  { x: 600, y: groundY - 35, size: 32, collected: false },
+  { x: 1400, y: groundY - 35, size: 32, collected: false },
+  { x: 2200, y: groundY - 35, size: 32, collected: false },
+  { x: 3000, y: groundY - 35, size: 32, collected: false },
+  { x: 3600, y: groundY - 35, size: 32, collected: false }
+];
+
 let currentItems = itemsFase1;
 let currentEnemies = enemiesFase1;
 
-function resetBats() {
-  batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true }));
-}
-
-function resetFireballs() {
-  fireballsFase3 = initialFireballPositions.map(fb => ({ ...fb, alive: true }));
-}
-
-function resetZombies() {
-  zombiesFase4 = initialZombiePositions.map(z => ({ ...z }));
+function resetBats() { batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true })); }
+function resetFireballs() { fireballsFase3 = initialFireballPositions.map(fb => ({ ...fb, alive: true })); }
+function resetZombies() { zombiesFase4 = initialZombiePositions.map(z => ({ ...z })); }
+function resetSpiders() {
+  spidersFase5 = initialSpiderPositions.map(s => ({ ...s }));
+  spiderWebsFase5 = [];
 }
 
 function startLevel2() {
@@ -201,6 +223,13 @@ function startLevel4() {
   resetZombies();
 }
 
+function startLevel5() {
+  currentLevel = 5; levelCompleted = false;
+  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
+  cameraX = 0; currentItems = itemsFase5; currentEnemies = [];
+  resetSpiders();
+}
+
 function restartGame() {
   ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
   ben.score = 0; levelCompleted = false;
@@ -211,10 +240,12 @@ function restartGame() {
   itemsFase2.forEach(item => item.collected = false); resetBats();
   itemsFase3.forEach(item => item.collected = false); resetFireballs();
   itemsFase4.forEach(item => item.collected = false); resetZombies();
+  itemsFase5.forEach(item => item.collected = false); resetSpiders();
 
   if (currentLevel === 2) startLevel2();
   if (currentLevel === 3) startLevel3();
   if (currentLevel === 4) startLevel4();
+  if (currentLevel === 5) startLevel5();
 }
 
 function handleAction() {
@@ -222,6 +253,7 @@ function handleAction() {
     if (currentLevel === 1) { startLevel2(); return true; }
     if (currentLevel === 2) { startLevel3(); return true; }
     if (currentLevel === 3) { startLevel4(); return true; }
+    if (currentLevel === 4) { startLevel5(); return true; }
   }
   if (!ben.alive) {
     restartGame();
@@ -374,7 +406,71 @@ function update() {
     });
   }
 
-  // Ataque de Espada
+  // Fase 5: Aranha Atiradora de Teias
+  if (currentLevel === 5) {
+    spidersFase5.forEach(spider => {
+      if (spider.alive) {
+        const distanceToBen = Math.abs(ben.x - spider.x);
+
+        // Se o Ben estiver próximo (alcance de 350px), a aranha arma o ataque
+        if (distanceToBen < 350) {
+          spider.isAttacking = true;
+          spider.direction = ben.x > spider.x ? 1 : -1; // Olha para o Ben
+
+          // Disparar teia a cada tempo de recarga
+          if (spider.attackCooldown <= 0) {
+            spiderWebsFase5.push({
+              x: spider.direction === 1 ? spider.x + spider.width : spider.x - 40,
+              y: spider.y + 20,
+              width: 40,
+              height: 40,
+              speed: 6 * spider.direction,
+              alive: true
+            });
+            spider.attackCooldown = 90; // Recarga entre tiros (~1.5 seg)
+          }
+        } else {
+          spider.isAttacking = false;
+          spider.x += spider.speed * spider.direction;
+          if (spider.x <= spider.minX || spider.x + spider.width >= spider.maxX) {
+            spider.direction *= -1;
+          }
+        }
+
+        if (spider.attackCooldown > 0) spider.attackCooldown--;
+
+        // Colisão direta com o corpo da aranha
+        if (ben.x < spider.x + spider.width - 10 &&
+            ben.x + ben.width > spider.x + 10 &&
+            ben.y < spider.y + spider.height &&
+            ben.y + ben.height > spider.y) {
+          ben.alive = false;
+        }
+      }
+    });
+
+    // Atualização dos Projéteis de Teia
+    spiderWebsFase5.forEach(web => {
+      if (web.alive) {
+        web.x += web.speed;
+
+        // Colisão da Teia com o Ben (Se encostar morre!)
+        if (ben.x < web.x + web.width &&
+            ben.x + ben.width > web.x &&
+            ben.y < web.y + web.height &&
+            ben.y + ben.height > web.y) {
+          ben.alive = false;
+        }
+
+        // Remover teia se sair da tela
+        if (web.x < cameraX - 100 || web.x > cameraX + canvas.width + 100) {
+          web.alive = false;
+        }
+      }
+    });
+  }
+
+  // Ataque de Espada do Ben
   if (ben.isAttacking) {
     ben.attackTimer--;
     if (ben.attackTimer <= 0) ben.isAttacking = false;
@@ -413,6 +509,14 @@ function update() {
       zombiesFase4.forEach(zombie => {
         if (zombie.alive && attackArea.x < zombie.x + zombie.width && attackArea.x + attackArea.width > zombie.x && attackArea.y < zombie.y + zombie.height && attackArea.y + attackArea.height > zombie.y) {
           zombie.alive = false; ben.score += 80;
+        }
+      });
+    }
+
+    if (currentLevel === 5) {
+      spidersFase5.forEach(spider => {
+        if (spider.alive && attackArea.x < spider.x + spider.width && attackArea.x + attackArea.width > spider.x && attackArea.y < spider.y + spider.height && attackArea.y + attackArea.height > spider.y) {
+          spider.alive = false; ben.score += 100;
         }
       });
     }
@@ -516,9 +620,12 @@ function draw() {
   } else if (currentLevel === 4) {
     if (bg4Loaded) ctx.drawImage(bg4Img, 0, 0, levelWidth, canvas.height);
     else { ctx.fillStyle = '#1e1b4b'; ctx.fillRect(0, 0, levelWidth, canvas.height); ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, groundY, levelWidth, 50); }
+  } else if (currentLevel === 5) {
+    if (bg5Loaded) ctx.drawImage(bg5Img, 0, 0, levelWidth, canvas.height);
+    else { ctx.fillStyle = '#312e81'; ctx.fillRect(0, 0, levelWidth, canvas.height); ctx.fillStyle = '#1e293b'; ctx.fillRect(0, groundY, levelWidth, 50); }
   }
 
-  // Desenhar Imagem do Portal (portal.png)
+  // Desenhar Imagem do Portal (2x o tamanho do Ben: 180px x 180px)
   if (portalLoaded) {
     ctx.drawImage(portalImg, portal.x, portal.y, portal.width, portal.height);
   } else {
@@ -564,6 +671,33 @@ function draw() {
     });
   }
 
+  // Aranha e Teias (Fase 5)
+  if (currentLevel === 5) {
+    spidersFase5.forEach(spider => {
+      if (spider.alive) {
+        let currentSpiderImg = spider.direction === 1 ? spiderRightImg : spiderLeftImg;
+        if (spider.isAttacking && spiderAttackLoaded) {
+          currentSpiderImg = spiderAttackImg;
+        }
+
+        ctx.drawImage(currentSpiderImg, spider.x, spider.y, spider.width, spider.height);
+      }
+    });
+
+    spiderWebsFase5.forEach(web => {
+      if (web.alive) {
+        if (webLoaded) {
+          ctx.drawImage(webImg, web.x, web.y, web.width, web.height);
+        } else {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(web.x + web.width / 2, web.y + web.height / 2, web.width / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    });
+  }
+
   // Desenhar Ben
   if (ben.alive) {
     if (ben.isAttacking) {
@@ -591,7 +725,7 @@ function draw() {
   if (currentLevel === 1) drawPixelSun();
   else if (currentLevel === 2) drawPixelMoon();
   else if (currentLevel === 3) drawPixelFireSun();
-  else if (currentLevel === 4) drawPixelStar();
+  else if (currentLevel === 4 || currentLevel === 5) drawPixelStar();
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px Arial';
@@ -624,6 +758,10 @@ function draw() {
       ctx.fillText('FASE 3 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
       ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 4 (Castelo)!', canvas.width / 2, canvas.height / 2 + 30);
+    } else if (currentLevel === 4) {
+      ctx.fillText('FASE 4 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
+      ctx.fillText('Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase 5 (Templo da Aranha)!', canvas.width / 2, canvas.height / 2 + 30);
     } else {
       ctx.fillText('PARABÉNS! ZEROU O JOGO COMPLETO!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
