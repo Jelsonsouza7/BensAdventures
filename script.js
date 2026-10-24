@@ -76,7 +76,7 @@ for (let i = 1; i <= 6; i++) {
 }
 
 // =============================================================================
-// 3. ESTRUTURA CENTRALIZADA DE DADOS DAS FASES (LEVELS_DATA)
+// 3. ESTRUTURA CENTRALIZADA DE DADOS DAS FASES (+2 INIMIGOS POR FASE)
 // =============================================================================
 const LEVELS_DATA = {
   1: {
@@ -84,10 +84,12 @@ const LEVELS_DATA = {
     trees: [{ x: 400, w: 140, h: 180 }, { x: 900, w: 150, h: 190 }, { x: 1500, w: 140, h: 180 }, { x: 2100, w: 160, h: 200 }, { x: 2700, w: 140, h: 180 }, { x: 3300, w: 150, h: 190 }],
     items: [300, 700, 1200, 1700, 2150, 2750, 3350].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     crabs: [
-      { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, animTimer: 0, alive: true },
+      { x: 450, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 380, maxX: 600, animTimer: 0, alive: true },
+      { x: 750, y: groundY - 45, width: 60, height: 45, speed: 2.2, direction: -1, minX: 680, maxX: 900, animTimer: 0, alive: true },
       { x: 1050, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 980, maxX: 1250, animTimer: 0, alive: true },
       { x: 1600, y: groundY - 45, width: 60, height: 45, speed: 2, direction: -1, minX: 1400, maxX: 1750, animTimer: 0, alive: true },
       { x: 2150, y: groundY - 45, width: 60, height: 45, speed: 3, direction: 1, minX: 1950, maxX: 2300, animTimer: 0, alive: true },
+      { x: 2500, y: groundY - 45, width: 60, height: 45, speed: 2.4, direction: -1, minX: 2350, maxX: 2650, animTimer: 0, alive: true },
       { x: 2800, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 2600, maxX: 2950, animTimer: 0, alive: true },
       { x: 3200, y: groundY - 45, width: 60, height: 45, speed: 2.8, direction: 1, minX: 3000, maxX: 3350, animTimer: 0, alive: true },
       { x: 3600, y: groundY - 45, width: 60, height: 45, speed: 3, direction: -1, minX: 3400, maxX: 3750, animTimer: 0, alive: true }
@@ -97,10 +99,15 @@ const LEVELS_DATA = {
     bgKey: 'bg2',
     caves: [{ x: 500, w: 180, h: 160 }, { x: 1200, w: 200, h: 170 }, { x: 2000, w: 190, h: 165 }, { x: 2800, w: 210, h: 180 }, { x: 3400, w: 180, h: 160 }],
     items: [350, 800, 1300, 1800, 2300, 2900, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
-    crabs: [{ x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, animTimer: 0, alive: true }],
+    crabs: [
+      { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, animTimer: 0, alive: true },
+      { x: 2400, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: -1, minX: 2200, maxX: 2600, animTimer: 0, alive: true }
+    ],
     bats: [
+      { x: 650, y: groundY - 110, width: 50, height: 35, speed: 3, animTimer: 0, alive: true },
       { x: 900, y: groundY - 110, width: 50, height: 35, speed: 3, animTimer: 0, alive: true },
       { x: 1500, y: groundY - 120, width: 50, height: 35, speed: 3.2, animTimer: 0, alive: true },
+      { x: 1850, y: groundY - 105, width: 50, height: 35, speed: 3.4, animTimer: 0, alive: true },
       { x: 2100, y: groundY - 130, width: 50, height: 35, speed: 3.5, animTimer: 0, alive: true },
       { x: 2700, y: groundY - 100, width: 50, height: 35, speed: 4, animTimer: 0, alive: true },
       { x: 3300, y: groundY - 140, width: 50, height: 35, speed: 3.5, animTimer: 0, alive: true }
@@ -111,8 +118,10 @@ const LEVELS_DATA = {
     items: [400, 1000, 1800, 2600, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     lavaPits: [{ x: 650, width: 80, height: 40, offset: 0 }, { x: 1400, width: 90, height: 40, offset: 0 }, { x: 2200, width: 85, height: 40, offset: 0 }, { x: 3000, width: 100, height: 40, offset: 0 }],
     fireballs: [
+      { x: 600, y: groundY - 120, width: 45, height: 45, speed: 3.2, alive: true },
       { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5, alive: true },
       { x: 1400, y: groundY - 130, width: 45, height: 45, speed: 3.8, alive: true },
+      { x: 1750, y: groundY - 125, width: 45, height: 45, speed: 4.1, alive: true },
       { x: 2000, y: groundY - 140, width: 45, height: 45, speed: 4, alive: true },
       { x: 2600, y: groundY - 110, width: 45, height: 45, speed: 4.5, alive: true },
       { x: 3200, y: groundY - 150, width: 45, height: 45, speed: 4, alive: true }
@@ -122,8 +131,10 @@ const LEVELS_DATA = {
     bgKey: 'bg4',
     items: [500, 1200, 2000, 2800, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     zombies: [
+      { x: 500, y: groundY - 90, width: 90, height: 90, speed: 1.6, direction: -1, turnDelay: 0, alive: true },
       { x: 700, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
       { x: 1400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
+      { x: 1800, y: groundY - 90, width: 90, height: 90, speed: 2.1, direction: -1, turnDelay: 0, alive: true },
       { x: 2100, y: groundY - 90, width: 90, height: 90, speed: 2.1, direction: -1, turnDelay: 0, alive: true },
       { x: 2800, y: groundY - 90, width: 90, height: 90, speed: 2.2, direction: -1, turnDelay: 0, alive: true },
       { x: 3400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true }
@@ -133,8 +144,10 @@ const LEVELS_DATA = {
     bgKey: 'bg5',
     items: [600, 1400, 2200, 3000, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     spiders: [
+      { x: 500, y: groundY - 70, width: 90, height: 70, speed: 1.8, direction: 1, minX: 400, maxX: 650, isAttacking: false, attackCooldown: 0, alive: true },
       { x: 700, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 550, maxX: 900, isAttacking: false, attackCooldown: 0, alive: true },
       { x: 1400, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1200, maxX: 1600, isAttacking: false, attackCooldown: 0, alive: true },
+      { x: 1800, y: groundY - 70, width: 90, height: 70, speed: 2.2, direction: -1, minX: 1650, maxX: 2000, isAttacking: false, attackCooldown: 0, alive: true },
       { x: 2100, y: groundY - 70, width: 90, height: 70, speed: 2.2, direction: 1, minX: 1900, maxX: 2300, isAttacking: false, attackCooldown: 0, alive: true },
       { x: 2800, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2600, maxX: 3000, isAttacking: false, attackCooldown: 0, alive: true },
       { x: 3400, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: -1, minX: 3200, maxX: 3600, isAttacking: false, attackCooldown: 0, alive: true }
@@ -146,8 +159,10 @@ const LEVELS_DATA = {
     items: [500, 1200, 2000, 2900, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     holes: [{ x: 800, width: 100 }, { x: 1600, width: 120 }, { x: 2500, width: 110 }, { x: 3200, width: 130 }],
     eagles: [
+      { x: 600, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 2.8, direction: -1, minX: 400, maxX: 850, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
       { x: 900, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3, direction: -1, minX: 600, maxX: 1200, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
       { x: 1800, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.2, direction: -1, minX: 1400, maxX: 2100, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
+      { x: 2200, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.3, direction: -1, minX: 1950, maxX: 2450, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
       { x: 2600, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 2200, maxX: 2900, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
       { x: 3400, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 3000, maxX: 3700, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true }
     ]
@@ -279,7 +294,7 @@ canvas.addEventListener('touchstart', (e) => {
   if (e.touches.length > 0) handleCanvasClick(e.touches[0].clientX, e.touches[0].clientY);
 });
 
-// Controles Teclado (Inclusão da Tecla "Down" para Defesa)
+// Controles Teclado
 const keys = { right: false, left: false, down: false };
 window.addEventListener('keydown', (e) => {
   if (gameState !== 'playing' || handleAction()) return;
@@ -318,7 +333,6 @@ function update() {
 
   globalWalkTimer += 0.2;
 
-  // Lógica da Defesa (Seta para baixo no chão trava o movimento e ativa defesa)
   if (keys.down && ben.grounded) {
     ben.isDefending = true;
     ben.velocityX = 0;
@@ -326,7 +340,6 @@ function update() {
     ben.isDefending = false;
   }
 
-  // Movimento de caminhada (Apenas se não estiver defendendo)
   if (!ben.isDefending) {
     if (keys.right) {
       ben.velocityX = ben.speed;
@@ -380,7 +393,7 @@ function update() {
     }
   });
 
-  // Caranguejos (Repelidos ao acertar a defesa)
+  // Caranguejos
   data.crabs?.forEach(crab => {
     if (crab.alive) {
       crab.x += crab.speed * crab.direction;
@@ -389,7 +402,6 @@ function update() {
 
       if (isColliding(ben, crab)) {
         if (ben.isDefending) {
-          // Repelar: Empurra o caranguejo para trás e inverte o rumo
           crab.direction *= -1;
           crab.x += crab.direction * 30;
         } else {
@@ -404,7 +416,7 @@ function update() {
     }
   });
 
-  // Morcegos (Repelidos ao bater no escudo)
+  // Morcegos
   data.bats?.forEach(bat => {
     if (bat.alive) {
       bat.x -= bat.speed;
@@ -413,7 +425,7 @@ function update() {
 
       if (isColliding(ben, bat)) {
         if (ben.isDefending) {
-          bat.x += 120; // Empurrado para trás
+          bat.x += 120;
         } else {
           ben.alive = false;
         }
@@ -436,7 +448,7 @@ function update() {
 
       if (isColliding(ben, fb)) {
         if (ben.isDefending) {
-          fb.x += 150; // Bola de fogo e repelida
+          fb.x += 150;
         } else {
           ben.alive = false;
         }
@@ -460,7 +472,7 @@ function update() {
       if (isColliding(ben, hitbox)) {
         if (ben.isDefending) {
           zombie.direction *= -1;
-          zombie.x += zombie.direction * 40; // Zumbi empurrado
+          zombie.x += zombie.direction * 40;
         } else {
           ben.alive = false;
         }
@@ -509,7 +521,7 @@ function update() {
       web.x += web.speed;
       if (isColliding(ben, web)) {
         if (ben.isDefending) {
-          web.alive = false; // Teia e destruida/repelida pelo escudo
+          web.alive = false;
         } else {
           ben.alive = false;
         }
@@ -548,7 +560,7 @@ function update() {
 
       if (isColliding(ben, eagle)) {
         if (ben.isDefending) {
-          eagle.state = 'back_attack'; // Repelida para o segundo ataque
+          eagle.state = 'back_attack';
         } else {
           ben.alive = false;
         }
@@ -635,7 +647,7 @@ function draw() {
     }
   });
 
-  // Morcegos (Fase 2)
+  // Morcegos
   data.bats?.forEach(bat => {
     if (bat.alive) {
       const frame = (Math.floor(bat.animTimer) % 4) + 1;
@@ -667,10 +679,9 @@ function draw() {
     }
   });
 
-  // Desenhar Ben (Prioridade: Defesa -> Ataque -> Corrida -> Parado)
+  // Desenhar Ben
   if (ben.alive) {
     if (ben.isDefending) {
-      // Ben Defendendo com ben_left_def.png ou ben_right_def.png
       const img = ben.facing === 'right' ? images.benDefRight : images.benDefLeft;
       ctx.drawImage(img, ben.x, ben.y, ben.width, ben.height);
     } else if (ben.isAttacking) {
