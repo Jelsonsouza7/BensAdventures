@@ -9,20 +9,192 @@ let gameState = 'menu'; // 'menu', 'level_select', 'credits', 'playing'
 let currentLevel = 1;   // Nível atual (1 a 6 disponíveis)
 let levelCompleted = false;
 let cameraX = 0;
-let globalWalkTimer = 0; // Temporizador para animações de caminhada
+let globalWalkTimer = 0;
 
 const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
 
-// Portal de fim de fase (posição e dimensão padrão)
+// Portal de fim de fase
 const portal = { x: 3750, y: groundY - 180, width: 180, height: 180 };
 
 // Botão fixo de retorno ao menu durante a partida
 const inGameMenuBtn = { x: canvas.width - 110, y: 15, width: 90, height: 35 };
 
 // =============================================================================
-// 2. SISTEMA COMPACTO DE CARREGAMENTO DE IMAGENS
+// 2. SISTEMA DE EFEITOS SONOROS E TRILHA SONORA (WEB AUDIO API)
+// =============================================================================
+let audioCtx = null;
+let currentBgmLoop = null;
+let currentBgmType = null; // 'menu' ou 'game'
+
+// Inicializa e força o desbloqueio do áudio no navegador
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+// Sintetizador de Efeitos Sonoros Pontuais (SFX)
+function playSynthSound(type) {
+  if (!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === 'jump') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'attack') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.1);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'defend') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+    osc.start(now); osc.stop(now + 0.12);
+  } else if (type === 'coin') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(987.77, now);
+    osc.frequency.setValueAtTime(1318.51, now + 0.08);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.start(now); osc.stop(now + 0.25);
+  } else if (type === 'hit') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(250, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.start(now); osc.stop(now + 0.3);
+  } else if (type === 'win') {
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    notes.forEach((freq, index) => {
+      const noteOsc = audioCtx.createOscillator();
+      const noteGain = audioCtx.createGain();
+      noteOsc.type = 'triangle';
+      noteOsc.frequency.setValueAtTime(freq, now + index * 0.08);
+      noteGain.gain.setValueAtTime(0.15, now + index * 0.08);
+      noteGain.gain.exponentialRampToValueAtTime(0.01, now + (index + 1) * 0.08);
+      noteOsc.connect(noteGain); noteGain.connect(audioCtx.destination);
+      noteOsc.start(now + index * 0.08); noteOsc.stop(now + (index + 1) * 0.08);
+    });
+  } else if (type === 'bat') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    osc.start(now); osc.stop(now + 0.08);
+  } else if (type === 'fireball') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'zombie') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.linearRampToValueAtTime(60, now + 0.25);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.start(now); osc.stop(now + 0.25);
+  } else if (type === 'spider') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.setValueAtTime(800, now + 0.03);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    osc.start(now); osc.stop(now + 0.05);
+  } else if (type === 'web') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1000, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'eagle') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.exponentialRampToValueAtTime(1500, now + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(500, now + 0.2);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  }
+}
+
+// SISTEMA DE MÚSICA DE FUNDO EM LOOP (BGM)
+function stopBGM() {
+  if (currentBgmLoop) {
+    clearInterval(currentBgmLoop);
+    currentBgmLoop = null;
+  }
+  currentBgmType = null;
+}
+
+function playBGM(type) {
+  initAudio();
+  if (!audioCtx) return;
+  if (currentBgmType === type) return;
+
+  stopBGM();
+  currentBgmType = type;
+
+  let step = 0;
+  
+  if (type === 'menu') {
+    const notes = [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23];
+    currentBgmLoop = setInterval(() => {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(notes[step % notes.length], now);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.22);
+      step++;
+    }, 250);
+  } else if (type === 'game') {
+    const notes = [164.81, 196.00, 220.00, 246.94, 220.00, 196.00, 164.81, 146.83];
+    currentBgmLoop = setInterval(() => {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[step % notes.length], now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.14);
+      step++;
+    }, 160);
+  }
+}
+
+// =============================================================================
+// 3. CARREGAMENTO DE IMAGENS
 // =============================================================================
 const images = {};
 function loadImg(key, src) {
@@ -32,15 +204,13 @@ function loadImg(key, src) {
   return img;
 }
 
-// Carregamento de Sprites Globais e do Personagem Ben
 loadImg('menuBg', 'inicio.png');
-loadImg('ben', 'ben.png'); // Pose parado
+loadImg('ben', 'ben.png');
 loadImg('benAttackRight', 'ben_attack_right.png');
 loadImg('benAttackLeft', 'ben_attack_left.png');
 loadImg('benDefRight', 'ben_right_def.png');
 loadImg('benDefLeft', 'ben_left_def.png');
 
-// Sprites de Animação de Corrida do Ben (4 Quadros para cada direção)
 for (let i = 1; i <= 4; i++) {
   loadImg(`benRight${i}`, `ben_right${i}.png`);
   loadImg(`benLeft${i}`, `ben_left${i}.png`);
@@ -49,16 +219,13 @@ for (let i = 1; i <= 4; i++) {
 loadImg('coin', 'moeda.png');
 loadImg('portal', 'portal.png');
 
-// Sprites de Caranguejos (Animação de 4 Quadros)
 for (let i = 1; i <= 4; i++) {
   loadImg(`crabLeft${i}`, `crab_left${i}.png`);
   loadImg(`crabRight${i}`, `crab_right${i}.png`);
 }
 
-// Outros Elementos das Fases
 loadImg('tree', 'tree.png'); loadImg('cave', 'cave.png');
 
-// Morcegos da Fase 2 (Animação de 4 Quadros)
 for (let i = 1; i <= 4; i++) {
   loadImg(`bat${i}`, `bat${i}.png`);
 }
@@ -70,13 +237,12 @@ loadImg('spiderAttack', 'spider_atack.png'); loadImg('web', 'teia.png');
 loadImg('eagle1', 'aguia1.png'); loadImg('eagle2', 'aguia2.png');
 loadImg('eagleAttack', 'aguia_atack.png'); loadImg('eagleAttack2', 'aguia_atack2.png');
 
-// Imagens de Fundo das Fases (.jfif)
 for (let i = 1; i <= 6; i++) {
   loadImg(`bg${i}`, `tela${i}.jfif`);
 }
 
 // =============================================================================
-// 3. ESTRUTURA CENTRALIZADA DE DADOS DAS FASES (+2 INIMIGOS POR FASE)
+// 4. ESTRUTURA CENTRALIZADA DE DADOS DAS FASES (LEVELS_DATA)
 // =============================================================================
 const LEVELS_DATA = {
   1: {
@@ -172,7 +338,7 @@ const LEVELS_DATA = {
 let activeLevelData = null;
 
 // =============================================================================
-// 4. ATRIBUTOS DO PERSONAGEM BEN
+// 5. ATRIBUTOS DO PERSONAGEM BEN
 // =============================================================================
 const ben = {
   x: 50, y: 200, width: 90, height: 90,
@@ -181,9 +347,6 @@ const ben = {
   attackTimer: 0, animTimer: 0, score: 0, alive: true
 };
 
-// =============================================================================
-// 5. FUNÇÕES DE SUPORTE E COLISÃO
-// =============================================================================
 function isColliding(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x &&
          a.y < b.y + b.height && a.y + a.height > b.y;
@@ -197,6 +360,7 @@ function loadLevel(lvl) {
 
   activeLevelData = JSON.parse(JSON.stringify(LEVELS_DATA[lvl]));
   gameState = 'playing';
+  playBGM('game');
 }
 
 function restartGame() {
@@ -208,7 +372,7 @@ function handleAction() {
   if (gameState !== 'playing') return false;
   if (levelCompleted) {
     if (currentLevel < 6) loadLevel(currentLevel + 1);
-    else gameState = 'menu';
+    else { gameState = 'menu'; playBGM('menu'); }
     return true;
   }
   if (!ben.alive) {
@@ -219,7 +383,7 @@ function handleAction() {
 }
 
 // =============================================================================
-// 6. INTERFACE DE BOTÕES E MENUS
+// 6. INTERFACE DE MENUS E CONTROLES
 // =============================================================================
 const menuButtons = [
   { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => loadLevel(1) },
@@ -241,10 +405,6 @@ function drawTechButton(x, y, width, height, label, fontSize = 22) {
 
   ctx.fillStyle = grad; ctx.fill();
   ctx.lineWidth = 3; ctx.strokeStyle = '#00ffff'; ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10; ctx.stroke();
-  ctx.lineWidth = 2; ctx.strokeStyle = '#80e5ff'; ctx.beginPath();
-  ctx.moveTo(x + 5, y + height / 2 - 8); ctx.lineTo(x + 5, y + height / 2 + 8);
-  ctx.moveTo(x + width - 5, y + height / 2 - 8); ctx.lineTo(x + width - 5, y + height / 2 + 8);
-  ctx.stroke();
   ctx.restore();
 
   ctx.fillStyle = '#ffffff';
@@ -254,6 +414,9 @@ function drawTechButton(x, y, width, height, label, fontSize = 22) {
 }
 
 function handleCanvasClick(clientX, clientY) {
+  initAudio();
+  if (gameState !== 'playing') playBGM('menu');
+
   const rect = canvas.getBoundingClientRect();
   const clickX = (clientX - rect.left) * (canvas.width / rect.width);
   const clickY = (clientY - rect.top) * (canvas.height / rect.height);
@@ -262,6 +425,7 @@ function handleCanvasClick(clientX, clientY) {
     if (clickX >= inGameMenuBtn.x && clickX <= inGameMenuBtn.x + inGameMenuBtn.width &&
         clickY >= inGameMenuBtn.y && clickY <= inGameMenuBtn.y + inGameMenuBtn.height) {
       gameState = 'menu';
+      playBGM('menu');
       return;
     }
     handleAction();
@@ -289,6 +453,11 @@ function handleCanvasClick(clientX, clientY) {
   }
 }
 
+// Qualquer toque ou clique na janela destrava o som do navegador e inicia o menu BGM
+window.addEventListener('click', (e) => {
+  initAudio();
+  if (gameState !== 'playing') playBGM('menu');
+});
 canvas.addEventListener('click', (e) => handleCanvasClick(e.clientX, e.clientY));
 canvas.addEventListener('touchstart', (e) => {
   if (e.touches.length > 0) handleCanvasClick(e.touches[0].clientX, e.touches[0].clientY);
@@ -297,13 +466,26 @@ canvas.addEventListener('touchstart', (e) => {
 // Controles Teclado
 const keys = { right: false, left: false, down: false };
 window.addEventListener('keydown', (e) => {
-  if (gameState !== 'playing' || handleAction()) return;
+  initAudio();
+  if (gameState !== 'playing') {
+    playBGM('menu');
+    return;
+  }
+  if (handleAction()) return;
+
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
   if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
-  if ((e.code === 'ArrowUp' || e.code === 'KeyW') && ben.grounded && ben.alive && !ben.isDefending) { ben.velocityY = ben.jumpForce; ben.grounded = false; }
-  if (e.code === 'Space' && !ben.isAttacking && ben.alive && !ben.isDefending) { ben.isAttacking = true; ben.attackTimer = 15; }
+
+  if ((e.code === 'ArrowUp' || e.code === 'KeyW') && ben.grounded && ben.alive && !ben.isDefending) {
+    ben.velocityY = ben.jumpForce; ben.grounded = false; playSynthSound('jump');
+  }
+
+  if (e.code === 'Space' && !ben.isAttacking && ben.alive && !ben.isDefending) {
+    ben.isAttacking = true; ben.attackTimer = 15; playSynthSound('attack');
+  }
 });
+
 window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
@@ -315,21 +497,34 @@ const btnLeft = document.getElementById('btnLeft'), btnRight = document.getEleme
 const btnJump = document.getElementById('btnJump'), btnAttack = document.getElementById('btnAttack');
 
 if (btnLeft && btnRight && btnJump) {
-  btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.left = true; });
+  btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); if (ben.alive && gameState === 'playing') keys.left = true; });
   btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
-  btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.right = true; });
+  btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); if (ben.alive && gameState === 'playing') keys.right = true; });
   btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
-  btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); if (!handleAction() && ben.grounded && gameState === 'playing' && !ben.isDefending) { ben.velocityY = ben.jumpForce; ben.grounded = false; } });
+  btnJump.addEventListener('touchstart', (e) => {
+    e.preventDefault(); initAudio();
+    if (!handleAction() && ben.grounded && gameState === 'playing' && !ben.isDefending) {
+      ben.velocityY = ben.jumpForce; ben.grounded = false; playSynthSound('jump');
+    }
+  });
 }
 if (btnAttack) {
-  btnAttack.addEventListener('touchstart', (e) => { e.preventDefault(); if (!handleAction() && !ben.isAttacking && ben.alive && gameState === 'playing' && !ben.isDefending) { ben.isAttacking = true; ben.attackTimer = 15; } });
+  btnAttack.addEventListener('touchstart', (e) => {
+    e.preventDefault(); initAudio();
+    if (!handleAction() && !ben.isAttacking && ben.alive && gameState === 'playing' && !ben.isDefending) {
+      ben.isAttacking = true; ben.attackTimer = 15; playSynthSound('attack');
+    }
+  });
 }
 
 // =============================================================================
 // 7. LÓGICA DE ATUALIZAÇÃO DO JOGO (UPDATE)
 // =============================================================================
 function update() {
-  if (gameState !== 'playing' || levelCompleted || !ben.alive) return;
+  if (gameState !== 'playing') {
+    return;
+  }
+  if (levelCompleted || !ben.alive) return;
 
   globalWalkTimer += 0.2;
 
@@ -342,16 +537,11 @@ function update() {
 
   if (!ben.isDefending) {
     if (keys.right) {
-      ben.velocityX = ben.speed;
-      ben.facing = 'right';
-      ben.animTimer += 0.2;
+      ben.velocityX = ben.speed; ben.facing = 'right'; ben.animTimer += 0.2;
     } else if (keys.left) {
-      ben.velocityX = -ben.speed;
-      ben.facing = 'left';
-      ben.animTimer += 0.2;
+      ben.velocityX = -ben.speed; ben.facing = 'left'; ben.animTimer += 0.2;
     } else {
-      ben.velocityX = 0;
-      ben.animTimer = 0;
+      ben.velocityX = 0; ben.animTimer = 0;
     }
   }
 
@@ -361,9 +551,7 @@ function update() {
   if (!ben.grounded) ben.velocityY += gravity;
 
   if (ben.y + ben.height >= groundY) {
-    ben.y = groundY - ben.height;
-    ben.velocityY = 0;
-    ben.grounded = true;
+    ben.y = groundY - ben.height; ben.velocityY = 0; ben.grounded = true;
   } else {
     ben.grounded = false;
   }
@@ -389,7 +577,7 @@ function update() {
   // Moedas
   data.items?.forEach(item => {
     if (!item.collected && isColliding(ben, { x: item.x, y: item.y, width: item.size, height: item.size })) {
-      item.collected = true; ben.score += 10;
+      item.collected = true; ben.score += 10; playSynthSound('coin');
     }
   });
 
@@ -402,10 +590,9 @@ function update() {
 
       if (isColliding(ben, crab)) {
         if (ben.isDefending) {
-          crab.direction *= -1;
-          crab.x += crab.direction * 30;
+          crab.direction *= -1; crab.x += crab.direction * 30; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -421,13 +608,14 @@ function update() {
     if (bat.alive) {
       bat.x -= bat.speed;
       bat.animTimer += 0.2;
+      if (Math.abs(bat.x - ben.x) < 300 && Math.random() < 0.01) playSynthSound('bat');
       if (bat.x + bat.width < cameraX) bat.x = cameraX + canvas.width + 400;
 
       if (isColliding(ben, bat)) {
         if (ben.isDefending) {
-          bat.x += 120;
+          bat.x += 120; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -438,19 +626,22 @@ function update() {
   // Lava e Bolas de Fogo
   data.lavaPits?.forEach(pit => {
     pit.offset += 0.08;
-    if (ben.x + ben.width > pit.x + 10 && ben.x < pit.x + pit.width - 10 && ben.y + ben.height >= groundY - 10) ben.alive = false;
+    if (ben.x + ben.width > pit.x + 10 && ben.x < pit.x + pit.width - 10 && ben.y + ben.height >= groundY - 10) {
+      ben.alive = false; playSynthSound('hit'); stopBGM();
+    }
   });
 
   data.fireballs?.forEach(fb => {
     if (fb.alive) {
       fb.x -= fb.speed;
+      if (Math.abs(fb.x - ben.x) < 250 && Math.random() < 0.01) playSynthSound('fireball');
       if (fb.x + fb.width < cameraX) fb.x = cameraX + canvas.width + 300;
 
       if (isColliding(ben, fb)) {
         if (ben.isDefending) {
-          fb.x += 150;
+          fb.x += 150; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -467,14 +658,15 @@ function update() {
       } else zombie.turnDelay = 0;
 
       zombie.x += zombie.speed * zombie.direction;
+      if (Math.abs(zombie.x - ben.x) < 250 && Math.random() < 0.008) playSynthSound('zombie');
+
       const hitbox = { x: zombie.x + 10, y: zombie.y + 15, width: zombie.width - 20, height: zombie.height - 15 };
 
       if (isColliding(ben, hitbox)) {
         if (ben.isDefending) {
-          zombie.direction *= -1;
-          zombie.x += zombie.direction * 40;
+          zombie.direction *= -1; zombie.x += zombie.direction * 40; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -495,20 +687,21 @@ function update() {
             y: spider.y + 20, width: 40, height: 40, speed: 6 * spider.direction, alive: true
           });
           spider.attackCooldown = 90;
+          playSynthSound('web');
         }
       } else {
         spider.isAttacking = false;
         spider.x += spider.speed * spider.direction;
         if (spider.x <= spider.minX || spider.x + spider.width >= spider.maxX) spider.direction *= -1;
+        if (dist < 200 && Math.random() < 0.01) playSynthSound('spider');
       }
       if (spider.attackCooldown > 0) spider.attackCooldown--;
 
       if (isColliding(ben, spider)) {
         if (ben.isDefending) {
-          spider.direction *= -1;
-          spider.x += spider.direction * 30;
+          spider.direction *= -1; spider.x += spider.direction * 30; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -521,9 +714,9 @@ function update() {
       web.x += web.speed;
       if (isColliding(ben, web)) {
         if (ben.isDefending) {
-          web.alive = false;
+          web.alive = false; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
       if (web.x < cameraX - 100 || web.x > cameraX + canvas.width + 100) web.alive = false;
@@ -532,7 +725,9 @@ function update() {
 
   // Buracos e Águias
   data.holes?.forEach(hole => {
-    if (ben.x + ben.width > hole.x + 20 && ben.x < hole.x + hole.width - 20 && ben.y + ben.height >= groundY - 5) ben.alive = false;
+    if (ben.x + ben.width > hole.x + 20 && ben.x < hole.x + hole.width - 20 && ben.y + ben.height >= groundY - 5) {
+      ben.alive = false; playSynthSound('hit'); stopBGM();
+    }
   });
 
   data.eagles?.forEach(eagle => {
@@ -543,6 +738,7 @@ function update() {
         if (eagle.x <= eagle.minX || eagle.x + eagle.width >= eagle.maxX) eagle.direction *= -1;
         if (Math.abs(ben.x - eagle.x) < 400 && ben.x < eagle.x) {
           eagle.state = 'aiming'; eagle.aimTimer = 45; eagle.targetX = ben.x; eagle.targetY = ben.y;
+          playSynthSound('eagle');
         }
       } else if (eagle.state === 'aiming') {
         if (--eagle.aimTimer <= 0) eagle.state = 'attacking';
@@ -560,9 +756,9 @@ function update() {
 
       if (isColliding(ben, eagle)) {
         if (ben.isDefending) {
-          eagle.state = 'back_attack';
+          eagle.state = 'back_attack'; playSynthSound('defend');
         } else {
-          ben.alive = false;
+          ben.alive = false; playSynthSound('hit'); stopBGM();
         }
       }
 
@@ -574,7 +770,7 @@ function update() {
   const benCenterX = ben.x + ben.width / 2, benCenterY = ben.y + ben.height / 2;
   if (benCenterX >= portal.x + 30 && benCenterX <= portal.x + portal.width - 30 &&
       benCenterY >= portal.y + 30 && benCenterY <= portal.y + portal.height) {
-    levelCompleted = true;
+    levelCompleted = true; playSynthSound('win'); stopBGM();
   }
 }
 
@@ -609,7 +805,6 @@ function draw() {
     ctx.fillText('CRÉDITOS', canvas.width / 2, 120);
     ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
     ctx.fillText("Desenvolvido para Ben's Adventures", canvas.width / 2, 200);
-    ctx.fillText("Arte, Código e Design Criativo", canvas.width / 2, 250);
     drawTechButton(canvas.width / 2 - 70, 380, 140, 45, 'VOLTAR', 18);
     ctx.textAlign = 'left';
     return;
@@ -638,7 +833,7 @@ function draw() {
   ctx.drawImage(images.portal, portal.x, portal.y, portal.width, portal.height);
   data.items?.forEach(item => { if (!item.collected) ctx.drawImage(images.coin, item.x, item.y, item.size, item.size); });
 
-  // Caranguejos
+  // Inimigos
   data.crabs?.forEach(crab => {
     if (crab.alive) {
       const frame = (Math.floor(crab.animTimer) % 4) + 1;
@@ -647,7 +842,6 @@ function draw() {
     }
   });
 
-  // Morcegos
   data.bats?.forEach(bat => {
     if (bat.alive) {
       const frame = (Math.floor(bat.animTimer) % 4) + 1;
