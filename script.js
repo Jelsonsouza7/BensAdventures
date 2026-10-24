@@ -1,260 +1,200 @@
+// =============================================================================
+// 1. CONFIGURAÇÕES INICIAIS E CANVAS
+// =============================================================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Estados do Jogo: 'menu', 'level_select', 'credits', 'playing'
-let gameState = 'menu';
-let currentLevel = 1; // 1 = Praia, 2 = Selva, 3 = Vulcão, 4 = Castelo, 5 = Templo da Aranha, 6 = Pico das Águias
+// Estados globais de controle do jogo
+let gameState = 'menu'; // 'menu', 'level_select', 'credits', 'playing'
+let currentLevel = 1;   // Nível atual (1 a 6 disponíveis)
 let levelCompleted = false;
-
-// Imagem do Menu Inicial
-let menuBgLoaded = false;
-const menuBgImg = new Image();
-menuBgImg.src = 'inicio.png';
-menuBgImg.onload = () => { menuBgLoaded = true; };
-
-// Carregar Imagens do Personagem e Objetos Base
-const benImg = new Image(); benImg.src = 'ben.png';
-const benAttackRightImg = new Image(); benAttackRightImg.src = 'ben_attack_right.png';
-const benAttackLeftImg = new Image(); benAttackLeftImg.src = 'ben_attack_left.png';
-const coinImg = new Image(); coinImg.src = 'moeda.png';
-const crabLeftImg = new Image(); crabLeftImg.src = 'crab_left.png';
-const crabRightImg = new Image(); crabRightImg.src = 'crab_right.png';
-const treeImg = new Image(); treeImg.src = 'tree.png';
-
-// Imagem do Portal Personalizado (180x180)
-let portalLoaded = false;
-const portalImg = new Image();
-portalImg.src = 'portal.png';
-portalImg.onload = () => { portalLoaded = true; };
-
-// Imagens de Fundo das Fases (.jfif)
-let bg1Loaded = false; const bg1Img = new Image(); bg1Img.src = 'tela1.jfif'; bg1Img.onload = () => { bg1Loaded = true; };
-let bg2Loaded = false; const bg2Img = new Image(); bg2Img.src = 'tela2.jfif'; bg2Img.onload = () => { bg2Loaded = true; };
-let bg3Loaded = false; const bg3Img = new Image(); bg3Img.src = 'tela3.jfif'; bg3Img.onload = () => { bg3Loaded = true; };
-let bg4Loaded = false; const bg4Img = new Image(); bg4Img.src = 'tela4.jfif'; bg4Img.onload = () => { bg4Loaded = true; };
-let bg5Loaded = false; const bg5Img = new Image(); bg5Img.src = 'tela5.jfif'; bg5Img.onload = () => { bg5Loaded = true; };
-let bg6Loaded = false; const bg6Img = new Image(); bg6Img.src = 'tela6.jfif'; bg6Img.onload = () => { bg6Loaded = true; };
-
-// Imagens da Fase 2
-let batLoaded = false; const batImg = new Image(); batImg.src = 'bat.png'; batImg.onload = () => { batLoaded = true; };
-let caveLoaded = false; const caveImg = new Image(); caveImg.src = 'cave.png'; caveImg.onload = () => { caveLoaded = true; };
-
-// Imagens da Fase 3
-let fireballLoaded = false; const fireballImg = new Image(); fireballImg.src = 'fireball.png'; fireballImg.onload = () => { fireballLoaded = true; };
-let waterfireLoaded = false; const waterfireImg = new Image(); waterfireImg.src = 'waterfire.png'; waterfireImg.onload = () => { waterfireLoaded = true; };
-
-// Imagens do Zumbi (Fase 4)
-let zombieLeftLoaded = false; const zombieLeftImg = new Image(); zombieLeftImg.src = 'zombie_left.png'; zombieLeftImg.onload = () => { zombieLeftLoaded = true; };
-let zombieRightLoaded = false; const zombieRightImg = new Image(); zombieRightImg.src = 'zombie_right.png'; zombieRightImg.onload = () => { zombieRightLoaded = true; };
-
-// Imagens da Aranha e Teia (Fase 5)
-let spiderLeftLoaded = false; const spiderLeftImg = new Image(); spiderLeftImg.src = 'spider_left.png'; spiderLeftImg.onload = () => { spiderLeftLoaded = true; };
-let spiderRightLoaded = false; const spiderRightImg = new Image(); spiderRightImg.src = 'spider_right.png'; spiderRightImg.onload = () => { spiderRightLoaded = true; };
-let spiderAttackLoaded = false; const spiderAttackImg = new Image(); spiderAttackImg.src = 'spider_atack.png'; spiderAttackImg.onload = () => { spiderAttackLoaded = true; };
-let webLoaded = false; const webImg = new Image(); webImg.src = 'teia.png'; webImg.onload = () => { webLoaded = true; };
-
-// Imagens da Águia (Fase 6)
-let eagle1Loaded = false; const eagle1Img = new Image(); eagle1Img.src = 'aguia1.png'; eagle1Img.onload = () => { eagle1Loaded = true; };
-let eagle2Loaded = false; const eagle2Img = new Image(); eagle2Img.src = 'aguia2.png'; eagle2Img.onload = () => { eagle2Loaded = true; };
-let eagleAttackLoaded = false; const eagleAttackImg = new Image(); eagleAttackImg.src = 'aguia_atack.png'; eagleAttackImg.onload = () => { eagleAttackLoaded = true; };
-let eagleAttack2Loaded = false; const eagleAttack2Img = new Image(); eagleAttack2Img.src = 'aguia_atack2.png'; eagleAttack2Img.onload = () => { eagleAttack2Loaded = true; };
-
-// Personagem Principal: BEN
-const ben = {
-  x: 50,
-  y: 200,
-  width: 90,
-  height: 90,
-  velocityX: 0,
-  velocityY: 0,
-  speed: 5,
-  jumpForce: -13.5,
-  grounded: false,
-  facing: 'right',
-  isAttacking: false,
-  attackTimer: 0,
-  score: 0,
-  alive: true
-};
-
-// Configurações Globais
 let cameraX = 0;
+let globalWalkTimer = 0; // Temporizador para animações de caminhada
+
 const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
-let globalWalkTimer = 0;
 
-// Portal do Fim da Fase (180px x 180px)
+// Portal de fim de fase (posição e dimensão padrão)
 const portal = { x: 3750, y: groundY - 180, width: 180, height: 180 };
 
-// Botão de Voltar ao Menu durante a Partida
+// Botão fixo de retorno ao menu durante a partida
 const inGameMenuBtn = { x: canvas.width - 110, y: 15, width: 90, height: 35 };
 
-// --- ELEMENTOS DA FASE 1 ---
-const treesFase1 = [
-  { x: 400, width: 140, height: 180 }, { x: 900, width: 150, height: 190 },
-  { x: 1500, width: 140, height: 180 }, { x: 2100, width: 160, height: 200 },
-  { x: 2700, width: 140, height: 180 }, { x: 3300, width: 150, height: 190 }
-];
+// =============================================================================
+// 2. SISTEMA COMPACTO DE CARREGAMENTO DE IMAGENS
+// =============================================================================
+const images = {};
+function loadImg(key, src) {
+  const img = new Image();
+  img.src = src;
+  images[key] = img;
+  return img;
+}
 
-const itemsFase1 = [
-  { x: 300, y: groundY - 35, size: 32, collected: false }, { x: 700, y: groundY - 35, size: 32, collected: false },
-  { x: 1200, y: groundY - 35, size: 32, collected: false }, { x: 1700, y: groundY - 35, size: 32, collected: false },
-  { x: 2150, y: groundY - 35, size: 32, collected: false }, { x: 2750, y: groundY - 35, size: 32, collected: false },
-  { x: 3350, y: groundY - 35, size: 32, collected: false }
-];
+// Carregamento de Sprites Globais e do Personagem Ben
+loadImg('menuBg', 'inicio.png');
+loadImg('ben', 'ben.png'); // Pose parado
+loadImg('benAttackRight', 'ben_attack_right.png');
+loadImg('benAttackLeft', 'ben_attack_left.png');
+loadImg('benDefRight', 'ben_right_def.png');
+loadImg('benDefLeft', 'ben_left_def.png');
 
-const enemiesFase1 = [
-  { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, alive: true },
-  { x: 1050, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 980, maxX: 1250, alive: true },
-  { x: 1600, y: groundY - 45, width: 60, height: 45, speed: 2, direction: -1, minX: 1400, maxX: 1750, alive: true },
-  { x: 2150, y: groundY - 45, width: 60, height: 45, speed: 3, direction: 1, minX: 1950, maxX: 2300, alive: true },
-  { x: 2800, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 2600, maxX: 2950, alive: true },
-  { x: 3200, y: groundY - 45, width: 60, height: 45, speed: 2.8, direction: 1, minX: 3000, maxX: 3350, alive: true },
-  { x: 3600, y: groundY - 45, width: 60, height: 45, speed: 3, direction: -1, minX: 3400, maxX: 3750, alive: true }
-];
+// Sprites de Animação de Corrida do Ben (4 Quadros para cada direção)
+for (let i = 1; i <= 4; i++) {
+  loadImg(`benRight${i}`, `ben_right${i}.png`);
+  loadImg(`benLeft${i}`, `ben_left${i}.png`);
+}
 
-// --- ELEMENTOS DA FASE 2 ---
-const cavesFase2 = [
-  { x: 500, width: 180, height: 160 }, { x: 1200, width: 200, height: 170 },
-  { x: 2000, width: 190, height: 165 }, { x: 2800, width: 210, height: 180 },
-  { x: 3400, width: 180, height: 160 }
-];
+loadImg('coin', 'moeda.png');
+loadImg('portal', 'portal.png');
 
-const itemsFase2 = [
-  { x: 350, y: groundY - 35, size: 32, collected: false }, { x: 800, y: groundY - 35, size: 32, collected: false },
-  { x: 1300, y: groundY - 35, size: 32, collected: false }, { x: 1800, y: groundY - 35, size: 32, collected: false },
-  { x: 2300, y: groundY - 35, size: 32, collected: false }, { x: 2900, y: groundY - 35, size: 32, collected: false },
-  { x: 3500, y: groundY - 35, size: 32, collected: false }
-];
+// Sprites de Caranguejos (Animação de 4 Quadros)
+for (let i = 1; i <= 4; i++) {
+  loadImg(`crabLeft${i}`, `crab_left${i}.png`);
+  loadImg(`crabRight${i}`, `crab_right${i}.png`);
+}
 
-const initialBatPositions = [
-  { x: 900, y: groundY - 110, width: 50, height: 35, speed: 3 },
-  { x: 1500, y: groundY - 120, width: 50, height: 35, speed: 3.2 },
-  { x: 2100, y: groundY - 130, width: 50, height: 35, speed: 3.5 },
-  { x: 2700, y: groundY - 100, width: 50, height: 35, speed: 4 },
-  { x: 3300, y: groundY - 140, width: 50, height: 35, speed: 3.5 }
-];
-let batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true }));
+// Outros Elementos das Fases
+loadImg('tree', 'tree.png'); loadImg('cave', 'cave.png');
 
-// --- ELEMENTOS DA FASE 3 ---
-const lavaPitsFase3 = [
-  { x: 650, width: 80, height: 40, offset: 0 }, { x: 1400, width: 90, height: 40, offset: 0 },
-  { x: 2200, width: 85, height: 40, offset: 0 }, { x: 3000, width: 100, height: 40, offset: 0 }
-];
+// Morcegos da Fase 2 (Animação de 4 Quadros)
+for (let i = 1; i <= 4; i++) {
+  loadImg(`bat${i}`, `bat${i}.png`);
+}
 
-const initialFireballPositions = [
-  { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5 },
-  { x: 1400, y: groundY - 130, width: 45, height: 45, speed: 3.8 },
-  { x: 2000, y: groundY - 140, width: 45, height: 45, speed: 4 },
-  { x: 2600, y: groundY - 110, width: 45, height: 45, speed: 4.5 },
-  { x: 3200, y: groundY - 150, width: 45, height: 45, speed: 4 }
-];
-let fireballsFase3 = initialFireballPositions.map(fb => ({ ...fb, alive: true }));
+loadImg('fireball', 'fireball.png'); loadImg('waterfire', 'waterfire.png');
+loadImg('zombieLeft', 'zombie_left.png'); loadImg('zombieRight', 'zombie_right.png');
+loadImg('spiderLeft', 'spider_left.png'); loadImg('spiderRight', 'spider_right.png');
+loadImg('spiderAttack', 'spider_atack.png'); loadImg('web', 'teia.png');
+loadImg('eagle1', 'aguia1.png'); loadImg('eagle2', 'aguia2.png');
+loadImg('eagleAttack', 'aguia_atack.png'); loadImg('eagleAttack2', 'aguia_atack2.png');
 
-const itemsFase3 = [
-  { x: 400, y: groundY - 35, size: 32, collected: false }, { x: 1000, y: groundY - 35, size: 32, collected: false },
-  { x: 1800, y: groundY - 35, size: 32, collected: false }, { x: 2600, y: groundY - 35, size: 32, collected: false },
-  { x: 3500, y: groundY - 35, size: 32, collected: false }
-];
+// Imagens de Fundo das Fases (.jfif)
+for (let i = 1; i <= 6; i++) {
+  loadImg(`bg${i}`, `tela${i}.jfif`);
+}
 
-// --- ELEMENTOS DA FASE 4 ---
-const initialZombiePositions = [
-  { x: 700, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
-  { x: 1400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
-  { x: 2100, y: groundY - 90, width: 90, height: 90, speed: 2.1, direction: -1, turnDelay: 0, alive: true },
-  { x: 2800, y: groundY - 90, width: 90, height: 90, speed: 2.2, direction: -1, turnDelay: 0, alive: true },
-  { x: 3400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true }
-];
-let zombiesFase4 = initialZombiePositions.map(z => ({ ...z }));
+// =============================================================================
+// 3. ESTRUTURA CENTRALIZADA DE DADOS DAS FASES (LEVELS_DATA)
+// =============================================================================
+const LEVELS_DATA = {
+  1: {
+    bgKey: 'bg1',
+    trees: [{ x: 400, w: 140, h: 180 }, { x: 900, w: 150, h: 190 }, { x: 1500, w: 140, h: 180 }, { x: 2100, w: 160, h: 200 }, { x: 2700, w: 140, h: 180 }, { x: 3300, w: 150, h: 190 }],
+    items: [300, 700, 1200, 1700, 2150, 2750, 3350].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    crabs: [
+      { x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, animTimer: 0, alive: true },
+      { x: 1050, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 980, maxX: 1250, animTimer: 0, alive: true },
+      { x: 1600, y: groundY - 45, width: 60, height: 45, speed: 2, direction: -1, minX: 1400, maxX: 1750, animTimer: 0, alive: true },
+      { x: 2150, y: groundY - 45, width: 60, height: 45, speed: 3, direction: 1, minX: 1950, maxX: 2300, animTimer: 0, alive: true },
+      { x: 2800, y: groundY - 45, width: 60, height: 45, speed: 2.5, direction: 1, minX: 2600, maxX: 2950, animTimer: 0, alive: true },
+      { x: 3200, y: groundY - 45, width: 60, height: 45, speed: 2.8, direction: 1, minX: 3000, maxX: 3350, animTimer: 0, alive: true },
+      { x: 3600, y: groundY - 45, width: 60, height: 45, speed: 3, direction: -1, minX: 3400, maxX: 3750, animTimer: 0, alive: true }
+    ]
+  },
+  2: {
+    bgKey: 'bg2',
+    caves: [{ x: 500, w: 180, h: 160 }, { x: 1200, w: 200, h: 170 }, { x: 2000, w: 190, h: 165 }, { x: 2800, w: 210, h: 180 }, { x: 3400, w: 180, h: 160 }],
+    items: [350, 800, 1300, 1800, 2300, 2900, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    crabs: [{ x: 550, y: groundY - 45, width: 60, height: 45, speed: 2, direction: 1, minX: 480, maxX: 700, animTimer: 0, alive: true }],
+    bats: [
+      { x: 900, y: groundY - 110, width: 50, height: 35, speed: 3, animTimer: 0, alive: true },
+      { x: 1500, y: groundY - 120, width: 50, height: 35, speed: 3.2, animTimer: 0, alive: true },
+      { x: 2100, y: groundY - 130, width: 50, height: 35, speed: 3.5, animTimer: 0, alive: true },
+      { x: 2700, y: groundY - 100, width: 50, height: 35, speed: 4, animTimer: 0, alive: true },
+      { x: 3300, y: groundY - 140, width: 50, height: 35, speed: 3.5, animTimer: 0, alive: true }
+    ]
+  },
+  3: {
+    bgKey: 'bg3',
+    items: [400, 1000, 1800, 2600, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    lavaPits: [{ x: 650, width: 80, height: 40, offset: 0 }, { x: 1400, width: 90, height: 40, offset: 0 }, { x: 2200, width: 85, height: 40, offset: 0 }, { x: 3000, width: 100, height: 40, offset: 0 }],
+    fireballs: [
+      { x: 800, y: groundY - 120, width: 45, height: 45, speed: 3.5, alive: true },
+      { x: 1400, y: groundY - 130, width: 45, height: 45, speed: 3.8, alive: true },
+      { x: 2000, y: groundY - 140, width: 45, height: 45, speed: 4, alive: true },
+      { x: 2600, y: groundY - 110, width: 45, height: 45, speed: 4.5, alive: true },
+      { x: 3200, y: groundY - 150, width: 45, height: 45, speed: 4, alive: true }
+    ]
+  },
+  4: {
+    bgKey: 'bg4',
+    items: [500, 1200, 2000, 2800, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    zombies: [
+      { x: 700, y: groundY - 90, width: 90, height: 90, speed: 1.8, direction: -1, turnDelay: 0, alive: true },
+      { x: 1400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true },
+      { x: 2100, y: groundY - 90, width: 90, height: 90, speed: 2.1, direction: -1, turnDelay: 0, alive: true },
+      { x: 2800, y: groundY - 90, width: 90, height: 90, speed: 2.2, direction: -1, turnDelay: 0, alive: true },
+      { x: 3400, y: groundY - 90, width: 90, height: 90, speed: 2.0, direction: -1, turnDelay: 0, alive: true }
+    ]
+  },
+  5: {
+    bgKey: 'bg5',
+    items: [600, 1400, 2200, 3000, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    spiders: [
+      { x: 700, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 550, maxX: 900, isAttacking: false, attackCooldown: 0, alive: true },
+      { x: 1400, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1200, maxX: 1600, isAttacking: false, attackCooldown: 0, alive: true },
+      { x: 2100, y: groundY - 70, width: 90, height: 70, speed: 2.2, direction: 1, minX: 1900, maxX: 2300, isAttacking: false, attackCooldown: 0, alive: true },
+      { x: 2800, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2600, maxX: 3000, isAttacking: false, attackCooldown: 0, alive: true },
+      { x: 3400, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: -1, minX: 3200, maxX: 3600, isAttacking: false, attackCooldown: 0, alive: true }
+    ],
+    spiderWebs: []
+  },
+  6: {
+    bgKey: 'bg6',
+    items: [500, 1200, 2000, 2900, 3500].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    holes: [{ x: 800, width: 100 }, { x: 1600, width: 120 }, { x: 2500, width: 110 }, { x: 3200, width: 130 }],
+    eagles: [
+      { x: 900, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3, direction: -1, minX: 600, maxX: 1200, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
+      { x: 1800, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.2, direction: -1, minX: 1400, maxX: 2100, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
+      { x: 2600, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 2200, maxX: 2900, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
+      { x: 3400, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 3000, maxX: 3700, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true }
+    ]
+  }
+};
 
-const itemsFase4 = [
-  { x: 500, y: groundY - 35, size: 32, collected: false }, { x: 1200, y: groundY - 35, size: 32, collected: false },
-  { x: 2000, y: groundY - 35, size: 32, collected: false }, { x: 2800, y: groundY - 35, size: 32, collected: false },
-  { x: 3600, y: groundY - 35, size: 32, collected: false }
-];
+let activeLevelData = null;
 
-// --- ELEMENTOS DA FASE 5 ---
-const initialSpiderPositions = [
-  { x: 700, y: groundY - 70, width: 90, height: 70, speed: 2, direction: 1, minX: 550, maxX: 900, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 1400, y: groundY - 70, width: 90, height: 70, speed: 2, direction: -1, minX: 1200, maxX: 1600, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 2100, y: groundY - 70, width: 90, height: 70, speed: 2.2, direction: 1, minX: 1900, maxX: 2300, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 2800, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: 1, minX: 2600, maxX: 3000, isAttacking: false, attackCooldown: 0, alive: true },
-  { x: 3400, y: groundY - 70, width: 90, height: 70, speed: 2.5, direction: -1, minX: 3200, maxX: 3600, isAttacking: false, attackCooldown: 0, alive: true }
-];
-let spidersFase5 = initialSpiderPositions.map(s => ({ ...s }));
-let spiderWebsFase5 = [];
+// =============================================================================
+// 4. ATRIBUTOS DO PERSONAGEM BEN
+// =============================================================================
+const ben = {
+  x: 50, y: 200, width: 90, height: 90,
+  velocityX: 0, velocityY: 0, speed: 5, jumpForce: -13.5,
+  grounded: false, facing: 'right', isAttacking: false, isDefending: false,
+  attackTimer: 0, animTimer: 0, score: 0, alive: true
+};
 
-const itemsFase5 = [
-  { x: 600, y: groundY - 35, size: 32, collected: false }, { x: 1400, y: groundY - 35, size: 32, collected: false },
-  { x: 2200, y: groundY - 35, size: 32, collected: false }, { x: 3000, y: groundY - 35, size: 32, collected: false },
-  { x: 3600, y: groundY - 35, size: 32, collected: false }
-];
-
-// --- ELEMENTOS DA FASE 6 (4 ÁGUIAS & BURACOS NO CHÃO) ---
-const holesFase6 = [
-  { x: 800, width: 100 },
-  { x: 1600, width: 120 },
-  { x: 2500, width: 110 },
-  { x: 3200, width: 130 }
-];
-
-const initialEagles = [
-  { x: 900, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3, direction: -1, minX: 600, maxX: 1200, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
-  { x: 1800, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.2, direction: -1, minX: 1400, maxX: 2100, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
-  { x: 2600, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 2200, maxX: 2900, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true },
-  { x: 3400, y: groundY - 260, baseY: groundY - 260, width: 90, height: 70, speedX: 3.5, direction: -1, minX: 3000, maxX: 3700, state: 'patrol', aimTimer: 0, targetX: 0, targetY: 0, wingFlapTimer: 0, alive: true }
-];
-
-let eaglesFase6 = initialEagles.map(e => ({ ...e }));
-
-const itemsFase6 = [
-  { x: 500, y: groundY - 35, size: 32, collected: false }, { x: 1200, y: groundY - 35, size: 32, collected: false },
-  { x: 2000, y: groundY - 35, size: 32, collected: false }, { x: 2900, y: groundY - 35, size: 32, collected: false },
-  { x: 3500, y: groundY - 35, size: 32, collected: false }
-];
-
-let currentItems = itemsFase1;
-let currentEnemies = enemiesFase1;
-
-function resetBats() { batsFase2 = initialBatPositions.map(bat => ({ ...bat, alive: true })); }
-function resetFireballs() { fireballsFase3 = initialFireballPositions.map(fb => ({ ...fb, alive: true })); }
-function resetZombies() { zombiesFase4 = initialZombiePositions.map(z => ({ ...z })); }
-function resetSpiders() { spidersFase5 = initialSpiderPositions.map(s => ({ ...s })); spiderWebsFase5 = []; }
-function resetEagles() { eaglesFase6 = initialEagles.map(e => ({ ...e })); }
+// =============================================================================
+// 5. FUNÇÕES DE SUPORTE E COLISÃO
+// =============================================================================
+function isColliding(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x &&
+         a.y < b.y + b.height && a.y + a.height > b.y;
+}
 
 function loadLevel(lvl) {
-  currentLevel = lvl; levelCompleted = false;
-  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.alive = true;
+  currentLevel = lvl;
+  levelCompleted = false;
+  ben.x = 50; ben.y = 200; ben.velocityX = 0; ben.velocityY = 0; ben.animTimer = 0; ben.alive = true; ben.isDefending = false;
   cameraX = 0;
 
-  if (lvl === 1) { currentItems = itemsFase1; currentEnemies = enemiesFase1; }
-  else if (lvl === 2) { currentItems = itemsFase2; currentEnemies = enemiesFase1; resetBats(); }
-  else if (lvl === 3) { currentItems = itemsFase3; currentEnemies = []; resetFireballs(); }
-  else if (lvl === 4) { currentItems = itemsFase4; currentEnemies = []; resetZombies(); }
-  else if (lvl === 5) { currentItems = itemsFase5; currentEnemies = []; resetSpiders(); }
-  else if (lvl === 6) { currentItems = itemsFase6; currentEnemies = []; resetEagles(); }
-
+  activeLevelData = JSON.parse(JSON.stringify(LEVELS_DATA[lvl]));
   gameState = 'playing';
 }
 
 function restartGame() {
   ben.score = 0;
-  itemsFase1.forEach(item => item.collected = false); enemiesFase1.forEach(enemy => enemy.alive = true);
-  itemsFase2.forEach(item => item.collected = false); resetBats();
-  itemsFase3.forEach(item => item.collected = false); resetFireballs();
-  itemsFase4.forEach(item => item.collected = false); resetZombies();
-  itemsFase5.forEach(item => item.collected = false); resetSpiders();
-  itemsFase6.forEach(item => item.collected = false); resetEagles();
   loadLevel(currentLevel);
 }
 
 function handleAction() {
   if (gameState !== 'playing') return false;
-
   if (levelCompleted) {
-    if (currentLevel < 6) { loadLevel(currentLevel + 1); return true; }
-    else { gameState = 'menu'; return true; }
+    if (currentLevel < 6) loadLevel(currentLevel + 1);
+    else gameState = 'menu';
+    return true;
   }
   if (!ben.alive) {
     restartGame();
@@ -263,7 +203,9 @@ function handleAction() {
   return false;
 }
 
-// Botões do Menu Inicial
+// =============================================================================
+// 6. INTERFACE DE BOTÕES E MENUS
+// =============================================================================
 const menuButtons = [
   { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => loadLevel(1) },
   { label: 'FASES', x: canvas.width / 2 - 110, y: 255, width: 220, height: 55, action: () => gameState = 'level_select' },
@@ -313,30 +255,22 @@ function handleCanvasClick(clientX, clientY) {
 
   if (gameState === 'menu') {
     menuButtons.forEach(btn => {
-      if (clickX >= btn.x && clickX <= btn.x + btn.width && clickY >= btn.y && clickY <= btn.y + btn.height) {
-        btn.action();
-      }
+      if (clickX >= btn.x && clickX <= btn.x + btn.width && clickY >= btn.y && clickY <= btn.y + btn.height) btn.action();
     });
   } else if (gameState === 'level_select') {
     const btnW = 65, btnH = 50, gap = 15;
     const startX = canvas.width / 2 - ((5 * btnW + 4 * gap) / 2);
 
     for (let i = 1; i <= 10; i++) {
-      const col = (i - 1) % 5; const row = Math.floor((i - 1) / 5);
-      const btnX = startX + col * (btnW + gap); const btnY = 150 + row * (btnH + gap);
-
+      const col = (i - 1) % 5, row = Math.floor((i - 1) / 5);
+      const btnX = startX + col * (btnW + gap), btnY = 150 + row * (btnH + gap);
       if (clickX >= btnX && clickX <= btnX + btnW && clickY >= btnY && clickY <= btnY + btnH) {
         if (i <= 6) loadLevel(i);
       }
     }
-
-    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) {
-      gameState = 'menu';
-    }
+    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) gameState = 'menu';
   } else if (gameState === 'credits') {
-    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 380 && clickY <= 425) {
-      gameState = 'menu';
-    }
+    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 380 && clickY <= 425) gameState = 'menu';
   }
 }
 
@@ -345,88 +279,73 @@ canvas.addEventListener('touchstart', (e) => {
   if (e.touches.length > 0) handleCanvasClick(e.touches[0].clientX, e.touches[0].clientY);
 });
 
-// Controles Teclado
-const keys = { right: false, left: false };
-
+// Controles Teclado (Inclusão da Tecla "Down" para Defesa)
+const keys = { right: false, left: false, down: false };
 window.addEventListener('keydown', (e) => {
-  if (gameState !== 'playing') return;
-  if (handleAction()) return;
-
+  if (gameState !== 'playing' || handleAction()) return;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-  
-  if ((e.code === 'ArrowUp' || e.code === 'KeyW') && ben.grounded && ben.alive) {
-    ben.velocityY = ben.jumpForce;
-    ben.grounded = false;
-  }
-
-  if (e.code === 'Space' && !ben.isAttacking && ben.alive) {
-    ben.isAttacking = true;
-    ben.attackTimer = 15;
-  }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
+  if ((e.code === 'ArrowUp' || e.code === 'KeyW') && ben.grounded && ben.alive && !ben.isDefending) { ben.velocityY = ben.jumpForce; ben.grounded = false; }
+  if (e.code === 'Space' && !ben.isAttacking && ben.alive && !ben.isDefending) { ben.isAttacking = true; ben.attackTimer = 15; }
 });
-
 window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
 });
 
 // Controles Touch
-const btnLeft = document.getElementById('btnLeft');
-const btnRight = document.getElementById('btnRight');
-const btnJump = document.getElementById('btnJump');
-const btnAttack = document.getElementById('btnAttack');
+const btnLeft = document.getElementById('btnLeft'), btnRight = document.getElementById('btnRight');
+const btnJump = document.getElementById('btnJump'), btnAttack = document.getElementById('btnAttack');
 
 if (btnLeft && btnRight && btnJump) {
   btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.left = true; });
   btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
-
   btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); if (ben.alive && gameState === 'playing') keys.right = true; });
   btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
-
-  btnJump.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (handleAction()) return;
-    if (ben.grounded && gameState === 'playing') {
-      ben.velocityY = ben.jumpForce;
-      ben.grounded = false;
-    }
-  });
+  btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); if (!handleAction() && ben.grounded && gameState === 'playing' && !ben.isDefending) { ben.velocityY = ben.jumpForce; ben.grounded = false; } });
 }
-
 if (btnAttack) {
-  btnAttack.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (handleAction()) return;
-    if (!ben.isAttacking && ben.alive && gameState === 'playing') {
-      ben.isAttacking = true;
-      ben.attackTimer = 15;
-    }
-  });
+  btnAttack.addEventListener('touchstart', (e) => { e.preventDefault(); if (!handleAction() && !ben.isAttacking && ben.alive && gameState === 'playing' && !ben.isDefending) { ben.isAttacking = true; ben.attackTimer = 15; } });
 }
 
-// Lógica de Atualização
+// =============================================================================
+// 7. LÓGICA DE ATUALIZAÇÃO DO JOGO (UPDATE)
+// =============================================================================
 function update() {
   if (gameState !== 'playing' || levelCompleted || !ben.alive) return;
 
   globalWalkTimer += 0.2;
 
-  if (keys.right) {
-    ben.velocityX = ben.speed;
-    ben.facing = 'right';
-  } else if (keys.left) {
-    ben.velocityX = -ben.speed;
-    ben.facing = 'left';
-  } else {
+  // Lógica da Defesa (Seta para baixo no chão trava o movimento e ativa defesa)
+  if (keys.down && ben.grounded) {
+    ben.isDefending = true;
     ben.velocityX = 0;
+  } else {
+    ben.isDefending = false;
+  }
+
+  // Movimento de caminhada (Apenas se não estiver defendendo)
+  if (!ben.isDefending) {
+    if (keys.right) {
+      ben.velocityX = ben.speed;
+      ben.facing = 'right';
+      ben.animTimer += 0.2;
+    } else if (keys.left) {
+      ben.velocityX = -ben.speed;
+      ben.facing = 'left';
+      ben.animTimer += 0.2;
+    } else {
+      ben.velocityX = 0;
+      ben.animTimer = 0;
+    }
   }
 
   ben.x += ben.velocityX;
   ben.y += ben.velocityY;
 
-  if (!ben.grounded) {
-    ben.velocityY += gravity;
-  }
+  if (!ben.grounded) ben.velocityY += gravity;
 
   if (ben.y + ben.height >= groundY) {
     ben.y = groundY - ben.height;
@@ -436,272 +355,226 @@ function update() {
     ben.grounded = false;
   }
 
-  if (ben.x < 0) ben.x = 0;
-  if (ben.x + ben.width > levelWidth) ben.x = levelWidth - ben.width;
+  ben.x = Math.max(0, Math.min(levelWidth - ben.width, ben.x));
 
-  // Fase 3: Lava & Bolas de Fogo
-  if (currentLevel === 3) {
-    lavaPitsFase3.forEach(pit => {
-      pit.offset += 0.08;
-      if (ben.x + ben.width > pit.x + 10 && ben.x < pit.x + pit.width - 10 && ben.y + ben.height >= groundY - 10) {
-        ben.alive = false;
-      }
-    });
+  if (ben.x > canvas.width / 2 && ben.x < levelWidth - canvas.width / 2) cameraX = ben.x - canvas.width / 2;
+  else if (ben.x <= canvas.width / 2) cameraX = 0;
+  else if (ben.x >= levelWidth - canvas.width / 2) cameraX = levelWidth - canvas.width;
 
-    fireballsFase3.forEach(fb => {
-      if (fb.alive) {
-        fb.x -= fb.speed;
-        if (fb.x + fb.width < cameraX) fb.x = cameraX + canvas.width + 300;
-        if (ben.x < fb.x + fb.width && ben.x + ben.width > fb.x && ben.y < fb.y + fb.height && ben.y + ben.height > fb.y) {
-          ben.alive = false;
-        }
-      }
-    });
-  }
+  const attackArea = ben.isAttacking ? {
+    x: ben.facing === 'right' ? ben.x + ben.width : ben.x - 35,
+    y: ben.y, width: 45, height: ben.height
+  } : null;
 
-  // Fase 4: Zumbi Perseguidor
-  if (currentLevel === 4) {
-    zombiesFase4.forEach(zombie => {
-      if (zombie.alive) {
-        const desiredDirection = ben.x > zombie.x ? 1 : -1;
-        if (desiredDirection !== zombie.direction) {
-          zombie.turnDelay++;
-          if (zombie.turnDelay > 30) { zombie.direction = desiredDirection; zombie.turnDelay = 0; }
-        } else zombie.turnDelay = 0;
-
-        zombie.x += zombie.speed * zombie.direction;
-        const zombieHitboxY = zombie.y + 15;
-        const zombieHitboxHeight = zombie.height - 15;
-
-        if (ben.x < zombie.x + zombie.width - 10 && ben.x + ben.width > zombie.x + 10 &&
-            ben.y < zombieHitboxY + zombieHitboxHeight && ben.y + ben.height > zombieHitboxY) {
-          ben.alive = false;
-        }
-      }
-    });
-  }
-
-  // Fase 5: Aranha Atiradora de Teias
-  if (currentLevel === 5) {
-    spidersFase5.forEach(spider => {
-      if (spider.alive) {
-        const distanceToBen = Math.abs(ben.x - spider.x);
-        if (distanceToBen < 350) {
-          spider.isAttacking = true;
-          spider.direction = ben.x > spider.x ? 1 : -1;
-          if (spider.attackCooldown <= 0) {
-            spiderWebsFase5.push({
-              x: spider.direction === 1 ? spider.x + spider.width : spider.x - 40,
-              y: spider.y + 20, width: 40, height: 40, speed: 6 * spider.direction, alive: true
-            });
-            spider.attackCooldown = 90;
-          }
-        } else {
-          spider.isAttacking = false;
-          spider.x += spider.speed * spider.direction;
-          if (spider.x <= spider.minX || spider.x + spider.width >= spider.maxX) spider.direction *= -1;
-        }
-        if (spider.attackCooldown > 0) spider.attackCooldown--;
-
-        if (ben.x < spider.x + spider.width - 10 && ben.x + ben.width > spider.x + 10 &&
-            ben.y < spider.y + spider.height && ben.y + ben.height > spider.y) {
-          ben.alive = false;
-        }
-      }
-    });
-
-    spiderWebsFase5.forEach(web => {
-      if (web.alive) {
-        web.x += web.speed;
-        if (ben.x < web.x + web.width && ben.x + ben.width > web.x && ben.y < web.y + web.height && ben.y + ben.height > web.y) {
-          ben.alive = false;
-        }
-        if (web.x < cameraX - 100 || web.x > cameraX + canvas.width + 100) web.alive = false;
-      }
-    });
-  }
-
-  // Fase 6: 4 Águias - Ataque Contínuo Fluido (Sem Travar)
-  if (currentLevel === 6) {
-    holesFase6.forEach(hole => {
-      if (ben.x + ben.width > hole.x + 20 && ben.x < hole.x + hole.width - 20 && ben.y + ben.height >= groundY - 5) {
-        ben.alive = false;
-      }
-    });
-
-    eaglesFase6.forEach(eagle => {
-      if (eagle.alive) {
-        eagle.wingFlapTimer += 0.15;
-
-        if (eagle.state === 'patrol') {
-          eagle.x += eagle.speedX * eagle.direction;
-          if (eagle.x <= eagle.minX || eagle.x + eagle.width >= eagle.maxX) {
-            eagle.direction *= -1;
-          }
-
-          const distToBen = Math.abs(ben.x - eagle.x);
-          if (distToBen < 400 && ben.x < eagle.x) {
-            eagle.state = 'aiming';
-            eagle.aimTimer = 40; // Pausa no ar para mirar
-            eagle.targetX = ben.x;
-            eagle.targetY = ben.y;
-          }
-        } else if (eagle.state === 'aiming') {
-          eagle.aimTimer--;
-          if (eagle.aimTimer <= 0) {
-            eagle.state = 'attacking';
-          }
-        } else if (eagle.state === 'attacking') {
-          // Primeiro Rasante (aguia_atack.png)
-          const dx = eagle.targetX - eagle.x;
-          const dy = eagle.targetY - eagle.y;
-          const angle = Math.atan2(dy, dx);
-
-          eagle.x += Math.cos(angle) * 8.5;
-          eagle.y += Math.sin(angle) * 8.5;
-
-          // CORREÇÃO AQUI: Troca de estado assim que chegar perto do chão ou passar pela posição do alvo
-          if (eagle.y >= groundY - 90 || eagle.x <= eagle.targetX + 20) {
-            eagle.state = 'back_attack';
-          }
-        } else if (eagle.state === 'back_attack') {
-          // Segundo Ataque de Retorno (aguia_atack2.png) - Parte EXATAMENTE de onde parou!
-          eagle.x += 9;
-
-          // Se passar do herói em 300px, sobe de volta para o céu
-          if (eagle.x > ben.x + 300) {
-            eagle.state = 'returning';
-          }
-        } else if (eagle.state === 'returning') {
-          eagle.y -= 4;
-          if (eagle.y <= eagle.baseY) {
-            eagle.y = eagle.baseY;
-            eagle.state = 'patrol';
-          }
-        }
-
-        // Colisão da Águia com o Ben
-        if (ben.x < eagle.x + eagle.width - 10 && ben.x + ben.width > eagle.x + 10 &&
-            ben.y < eagle.y + eagle.height - 10 && ben.y + ben.height > eagle.y + 10) {
-          ben.alive = false;
-        }
-      }
-    });
-  }
-
-  // Ataque de Espada do Ben
   if (ben.isAttacking) {
     ben.attackTimer--;
     if (ben.attackTimer <= 0) ben.isAttacking = false;
-
-    const attackArea = {
-      x: ben.facing === 'right' ? ben.x + ben.width : ben.x - 35,
-      y: ben.y,
-      width: 45,
-      height: ben.height
-    };
-
-    currentEnemies.forEach(enemy => {
-      if (enemy.alive && attackArea.x < enemy.x + enemy.width && attackArea.x + attackArea.width > enemy.x && attackArea.y < enemy.y + enemy.height && attackArea.y + attackArea.height > enemy.y) {
-        const isBackAttack = (ben.facing === 'right' && enemy.direction === 1) || (ben.facing === 'left' && enemy.direction === -1);
-        if (isBackAttack) { enemy.alive = false; ben.score += 50; }
-      }
-    });
-
-    if (currentLevel === 2) {
-      batsFase2.forEach(bat => {
-        if (bat.alive && attackArea.x < bat.x + bat.width && attackArea.x + attackArea.width > bat.x && attackArea.y < bat.y + bat.height && attackArea.y + attackArea.height > bat.y) {
-          bat.alive = false; ben.score += 60;
-        }
-      });
-    }
-
-    if (currentLevel === 3) {
-      fireballsFase3.forEach(fb => {
-        if (fb.alive && attackArea.x < fb.x + fb.width && attackArea.x + attackArea.width > fb.x && attackArea.y < fb.y + fb.height && attackArea.y + attackArea.height > fb.y) {
-          fb.alive = false; ben.score += 70;
-        }
-      });
-    }
-
-    if (currentLevel === 4) {
-      zombiesFase4.forEach(zombie => {
-        if (zombie.alive && attackArea.x < zombie.x + zombie.width && attackArea.x + attackArea.width > zombie.x && attackArea.y < zombie.y + zombie.height && attackArea.y + attackArea.height > zombie.y) {
-          zombie.alive = false; ben.score += 80;
-        }
-      });
-    }
-
-    if (currentLevel === 5) {
-      spidersFase5.forEach(spider => {
-        if (spider.alive && attackArea.x < spider.x + spider.width && attackArea.x + attackArea.width > spider.x && attackArea.y < spider.y + spider.height && attackArea.y + attackArea.height > spider.y) {
-          spider.alive = false; ben.score += 100;
-        }
-      });
-    }
-
-    if (currentLevel === 6) {
-      eaglesFase6.forEach(eagle => {
-        if (eagle.alive && attackArea.x < eagle.x + eagle.width && attackArea.x + attackArea.width > eagle.x && attackArea.y < eagle.y + eagle.height && attackArea.y + attackArea.height > eagle.y) {
-          eagle.alive = false; ben.score += 120;
-        }
-      });
-    }
   }
 
-  currentEnemies.forEach(enemy => {
-    if (enemy.alive) {
-      enemy.x += enemy.speed * enemy.direction;
-      if (enemy.x <= enemy.minX || enemy.x + enemy.width >= enemy.maxX) enemy.direction *= -1;
-      if (ben.x < enemy.x + enemy.width && ben.x + ben.width > enemy.x && ben.y < enemy.y + enemy.height && ben.y + ben.height > enemy.y) {
-        ben.alive = false;
-      }
-    }
-  });
+  const data = activeLevelData;
 
-  if (currentLevel === 2) {
-    batsFase2.forEach(bat => {
-      if (bat.alive) {
-        bat.x -= bat.speed;
-        if (bat.x + bat.width < cameraX) bat.x = cameraX + canvas.width + 400;
-        if (ben.x < bat.x + bat.width && ben.x + ben.width > bat.x && ben.y < bat.y + bat.height && ben.y + ben.height > bat.y) {
-          ben.alive = false;
-        }
-      }
-    });
-  }
-
-  if (ben.x > canvas.width / 2 && ben.x < levelWidth - canvas.width / 2) {
-    cameraX = ben.x - canvas.width / 2;
-  } else if (ben.x <= canvas.width / 2) {
-    cameraX = 0;
-  } else if (ben.x >= levelWidth - canvas.width / 2) {
-    cameraX = levelWidth - canvas.width;
-  }
-
-  currentItems.forEach(item => {
-    if (!item.collected && ben.x < item.x + item.size && ben.x + ben.width > item.x && ben.y < item.y + item.size && ben.y + ben.height > item.y) {
+  // Moedas
+  data.items?.forEach(item => {
+    if (!item.collected && isColliding(ben, { x: item.x, y: item.y, width: item.size, height: item.size })) {
       item.collected = true; ben.score += 10;
     }
   });
 
-  const benCenterX = ben.x + ben.width / 2;
-  const benCenterY = ben.y + ben.height / 2;
+  // Caranguejos (Repelidos ao acertar a defesa)
+  data.crabs?.forEach(crab => {
+    if (crab.alive) {
+      crab.x += crab.speed * crab.direction;
+      crab.animTimer += 0.2;
+      if (crab.x <= crab.minX || crab.x + crab.width >= crab.maxX) crab.direction *= -1;
+
+      if (isColliding(ben, crab)) {
+        if (ben.isDefending) {
+          // Repelar: Empurra o caranguejo para trás e inverte o rumo
+          crab.direction *= -1;
+          crab.x += crab.direction * 30;
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, crab)) {
+        const isBackAttack = (ben.facing === 'right' && crab.direction === 1) || (ben.facing === 'left' && crab.direction === -1);
+        if (isBackAttack) { crab.alive = false; ben.score += 50; }
+      }
+    }
+  });
+
+  // Morcegos (Repelidos ao bater no escudo)
+  data.bats?.forEach(bat => {
+    if (bat.alive) {
+      bat.x -= bat.speed;
+      bat.animTimer += 0.2;
+      if (bat.x + bat.width < cameraX) bat.x = cameraX + canvas.width + 400;
+
+      if (isColliding(ben, bat)) {
+        if (ben.isDefending) {
+          bat.x += 120; // Empurrado para trás
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, bat)) { bat.alive = false; ben.score += 60; }
+    }
+  });
+
+  // Lava e Bolas de Fogo
+  data.lavaPits?.forEach(pit => {
+    pit.offset += 0.08;
+    if (ben.x + ben.width > pit.x + 10 && ben.x < pit.x + pit.width - 10 && ben.y + ben.height >= groundY - 10) ben.alive = false;
+  });
+
+  data.fireballs?.forEach(fb => {
+    if (fb.alive) {
+      fb.x -= fb.speed;
+      if (fb.x + fb.width < cameraX) fb.x = cameraX + canvas.width + 300;
+
+      if (isColliding(ben, fb)) {
+        if (ben.isDefending) {
+          fb.x += 150; // Bola de fogo e repelida
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, fb)) { fb.alive = false; ben.score += 70; }
+    }
+  });
+
+  // Zumbis
+  data.zombies?.forEach(zombie => {
+    if (zombie.alive) {
+      const desiredDir = ben.x > zombie.x ? 1 : -1;
+      if (desiredDir !== zombie.direction) {
+        if (++zombie.turnDelay > 30) { zombie.direction = desiredDir; zombie.turnDelay = 0; }
+      } else zombie.turnDelay = 0;
+
+      zombie.x += zombie.speed * zombie.direction;
+      const hitbox = { x: zombie.x + 10, y: zombie.y + 15, width: zombie.width - 20, height: zombie.height - 15 };
+
+      if (isColliding(ben, hitbox)) {
+        if (ben.isDefending) {
+          zombie.direction *= -1;
+          zombie.x += zombie.direction * 40; // Zumbi empurrado
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, zombie)) { zombie.alive = false; ben.score += 80; }
+    }
+  });
+
+  // Aranhas e Teias
+  data.spiders?.forEach(spider => {
+    if (spider.alive) {
+      const dist = Math.abs(ben.x - spider.x);
+      if (dist < 350) {
+        spider.isAttacking = true;
+        spider.direction = ben.x > spider.x ? 1 : -1;
+        if (spider.attackCooldown <= 0) {
+          data.spiderWebs.push({
+            x: spider.direction === 1 ? spider.x + spider.width : spider.x - 40,
+            y: spider.y + 20, width: 40, height: 40, speed: 6 * spider.direction, alive: true
+          });
+          spider.attackCooldown = 90;
+        }
+      } else {
+        spider.isAttacking = false;
+        spider.x += spider.speed * spider.direction;
+        if (spider.x <= spider.minX || spider.x + spider.width >= spider.maxX) spider.direction *= -1;
+      }
+      if (spider.attackCooldown > 0) spider.attackCooldown--;
+
+      if (isColliding(ben, spider)) {
+        if (ben.isDefending) {
+          spider.direction *= -1;
+          spider.x += spider.direction * 30;
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, spider)) { spider.alive = false; ben.score += 100; }
+    }
+  });
+
+  data.spiderWebs?.forEach(web => {
+    if (web.alive) {
+      web.x += web.speed;
+      if (isColliding(ben, web)) {
+        if (ben.isDefending) {
+          web.alive = false; // Teia e destruida/repelida pelo escudo
+        } else {
+          ben.alive = false;
+        }
+      }
+      if (web.x < cameraX - 100 || web.x > cameraX + canvas.width + 100) web.alive = false;
+    }
+  });
+
+  // Buracos e Águias
+  data.holes?.forEach(hole => {
+    if (ben.x + ben.width > hole.x + 20 && ben.x < hole.x + hole.width - 20 && ben.y + ben.height >= groundY - 5) ben.alive = false;
+  });
+
+  data.eagles?.forEach(eagle => {
+    if (eagle.alive) {
+      eagle.wingFlapTimer += 0.15;
+      if (eagle.state === 'patrol') {
+        eagle.x += eagle.speedX * eagle.direction;
+        if (eagle.x <= eagle.minX || eagle.x + eagle.width >= eagle.maxX) eagle.direction *= -1;
+        if (Math.abs(ben.x - eagle.x) < 400 && ben.x < eagle.x) {
+          eagle.state = 'aiming'; eagle.aimTimer = 45; eagle.targetX = ben.x; eagle.targetY = ben.y;
+        }
+      } else if (eagle.state === 'aiming') {
+        if (--eagle.aimTimer <= 0) eagle.state = 'attacking';
+      } else if (eagle.state === 'attacking') {
+        const angle = Math.atan2(eagle.targetY - eagle.y, eagle.targetX - eagle.x);
+        eagle.x += Math.cos(angle) * 8; eagle.y += Math.sin(angle) * 8;
+        if (eagle.y >= groundY - 80 || eagle.x <= eagle.targetX + 20) eagle.state = 'back_attack';
+      } else if (eagle.state === 'back_attack') {
+        eagle.x += 8.5;
+        if (eagle.x > ben.x + 350) eagle.state = 'returning';
+      } else if (eagle.state === 'returning') {
+        eagle.y -= 4;
+        if (eagle.y <= eagle.baseY) { eagle.y = eagle.baseY; eagle.state = 'patrol'; }
+      }
+
+      if (isColliding(ben, eagle)) {
+        if (ben.isDefending) {
+          eagle.state = 'back_attack'; // Repelida para o segundo ataque
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (attackArea && isColliding(attackArea, eagle)) { eagle.alive = false; ben.score += 120; }
+    }
+  });
+
+  // Portal
+  const benCenterX = ben.x + ben.width / 2, benCenterY = ben.y + ben.height / 2;
   if (benCenterX >= portal.x + 30 && benCenterX <= portal.x + portal.width - 30 &&
       benCenterY >= portal.y + 30 && benCenterY <= portal.y + portal.height) {
     levelCompleted = true;
   }
 }
 
-// Desenhar Cenas
+// =============================================================================
+// 8. DESENHO NA TELA (DRAW)
+// =============================================================================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (gameState === 'menu') {
-    if (menuBgLoaded) ctx.drawImage(menuBgImg, 0, 0, canvas.width, canvas.height);
-    else { ctx.fillStyle = '#0a0f24'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    ctx.drawImage(images.menuBg, 0, 0, canvas.width, canvas.height);
     menuButtons.forEach(btn => drawTechButton(btn.x, btn.y, btn.width, btn.height, btn.label));
-    ctx.textAlign = 'left';
     return;
   }
 
@@ -711,12 +584,10 @@ function draw() {
     const startX = canvas.width / 2 - ((5 * btnW + 4 * gap) / 2);
 
     for (let i = 1; i <= 10; i++) {
-      const col = (i - 1) % 5; const row = Math.floor((i - 1) / 5);
-      const btnX = startX + col * (btnW + gap); const btnY = 150 + row * (btnH + gap);
-      drawTechButton(btnX, btnY, btnW, btnH, `${i}`, 18);
+      const col = (i - 1) % 5, row = Math.floor((i - 1) / 5);
+      drawTechButton(startX + col * (btnW + gap), 150 + row * (btnH + gap), btnW, btnH, `${i}`, 18);
     }
     drawTechButton(canvas.width / 2 - 70, 360, 140, 45, 'VOLTAR', 18);
-    ctx.textAlign = 'left';
     return;
   }
 
@@ -732,109 +603,91 @@ function draw() {
     return;
   }
 
-  // CENA DE JOGO
+  // Jogo
   ctx.save();
   ctx.translate(-cameraX, 0);
 
-  if (currentLevel === 1) {
-    if (bg1Loaded) ctx.drawImage(bg1Img, 0, 0, levelWidth, canvas.height);
-    treesFase1.forEach(tree => ctx.drawImage(treeImg, tree.x, groundY - tree.height, tree.width, tree.height));
-  } else if (currentLevel === 2) {
-    if (bg2Loaded) ctx.drawImage(bg2Img, 0, 0, levelWidth, canvas.height);
-    cavesFase2.forEach(cave => { if (caveLoaded) ctx.drawImage(caveImg, cave.x, groundY - cave.height, cave.width, cave.height); });
-  } else if (currentLevel === 3) {
-    if (bg3Loaded) ctx.drawImage(bg3Img, 0, 0, levelWidth, canvas.height);
-    lavaPitsFase3.forEach(pit => {
-      ctx.fillStyle = '#171717'; ctx.fillRect(pit.x, groundY, pit.width, 50);
-      const waveY = Math.sin(pit.offset) * 3; const slideX = (pit.offset * 8) % 15;
-      if (waterfireLoaded) ctx.drawImage(waterfireImg, pit.x - slideX, groundY + waveY, pit.width + 15, pit.height);
-    });
-  } else if (currentLevel === 4) {
-    if (bg4Loaded) ctx.drawImage(bg4Img, 0, 0, levelWidth, canvas.height);
-  } else if (currentLevel === 5) {
-    if (bg5Loaded) ctx.drawImage(bg5Img, 0, 0, levelWidth, canvas.height);
-  } else if (currentLevel === 6) {
-    if (bg6Loaded) ctx.drawImage(bg6Img, 0, 0, levelWidth, canvas.height);
-    else { ctx.fillStyle = '#0284c7'; ctx.fillRect(0, 0, levelWidth, canvas.height); ctx.fillStyle = '#334155'; ctx.fillRect(0, groundY, levelWidth, 50); }
+  const data = activeLevelData;
 
-    holesFase6.forEach(hole => {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(hole.x, groundY, hole.width, 50);
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(hole.x, groundY, hole.width, 50);
-    });
-  }
+  ctx.drawImage(images[data.bgKey], 0, 0, levelWidth, canvas.height);
 
-  // Portal
-  if (portalLoaded) ctx.drawImage(portalImg, portal.x, portal.y, portal.width, portal.height);
+  data.trees?.forEach(t => ctx.drawImage(images.tree, t.x, groundY - t.h, t.w, t.h));
+  data.caves?.forEach(c => ctx.drawImage(images.cave, c.x, groundY - c.h, c.w, c.h));
+  data.lavaPits?.forEach(pit => {
+    ctx.fillStyle = '#171717'; ctx.fillRect(pit.x, groundY, pit.width, 50);
+    const waveY = Math.sin(pit.offset) * 3, slideX = (pit.offset * 8) % 15;
+    ctx.drawImage(images.waterfire, pit.x - slideX, groundY + waveY, pit.width + 15, pit.height);
+  });
+  data.holes?.forEach(hole => {
+    ctx.fillStyle = '#000000'; ctx.fillRect(hole.x, groundY, hole.width, 50);
+    ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3; ctx.strokeRect(hole.x, groundY, hole.width, 50);
+  });
 
-  // Moedas
-  currentItems.forEach(item => { if (!item.collected) ctx.drawImage(coinImg, item.x, item.y, item.size, item.size); });
+  ctx.drawImage(images.portal, portal.x, portal.y, portal.width, portal.height);
+  data.items?.forEach(item => { if (!item.collected) ctx.drawImage(images.coin, item.x, item.y, item.size, item.size); });
 
   // Caranguejos
-  currentEnemies.forEach((enemy, index) => {
-    if (enemy.alive) {
-      const currentCrabImg = enemy.direction === 1 ? crabRightImg : crabLeftImg;
-      const walkBounce = Math.abs(Math.sin(globalWalkTimer * 2 + index)) * 4;
-      ctx.drawImage(currentCrabImg, enemy.x, enemy.y - walkBounce, enemy.width, enemy.height);
+  data.crabs?.forEach(crab => {
+    if (crab.alive) {
+      const frame = (Math.floor(crab.animTimer) % 4) + 1;
+      const dirKey = crab.direction === 1 ? 'crabRight' : 'crabLeft';
+      ctx.drawImage(images[`${dirKey}${frame}`], crab.x, crab.y, crab.width, crab.height);
     }
   });
 
-  if (currentLevel === 2) batsFase2.forEach(bat => { if (bat.alive && batLoaded) ctx.drawImage(batImg, bat.x, bat.y, bat.width, bat.height); });
-  if (currentLevel === 3) fireballsFase3.forEach(fb => { if (fb.alive && fireballLoaded) ctx.drawImage(fireballImg, fb.x, fb.y, fb.width, fb.height); });
+  // Morcegos (Fase 2)
+  data.bats?.forEach(bat => {
+    if (bat.alive) {
+      const frame = (Math.floor(bat.animTimer) % 4) + 1;
+      ctx.drawImage(images[`bat${frame}`], bat.x, bat.y, bat.width, bat.height);
+    }
+  });
 
-  if (currentLevel === 4) {
-    zombiesFase4.forEach((zombie, index) => {
-      if (zombie.alive) {
-        const currentZombieImg = zombie.direction === 1 ? zombieRightImg : zombieLeftImg;
-        const walkBounce = Math.abs(Math.sin(globalWalkTimer * 1.5 + index)) * 5;
-        if (zombieRightLoaded) ctx.drawImage(currentZombieImg, zombie.x, zombie.y - walkBounce, zombie.width, zombie.height);
-      }
-    });
-  }
+  data.fireballs?.forEach(fb => { if (fb.alive) ctx.drawImage(images.fireball, fb.x, fb.y, fb.width, fb.height); });
+  data.zombies?.forEach((z, idx) => {
+    if (z.alive) {
+      const img = z.direction === 1 ? images.zombieRight : images.zombieLeft;
+      ctx.drawImage(img, z.x, z.y - Math.abs(Math.sin(globalWalkTimer * 1.5 + idx)) * 5, z.width, z.height);
+    }
+  });
+  data.spiders?.forEach((s, idx) => {
+    if (s.alive) {
+      let img = s.direction === 1 ? images.spiderRight : images.spiderLeft;
+      if (s.isAttacking) img = images.spiderAttack;
+      ctx.drawImage(img, s.x, s.y - (s.isAttacking ? 0 : Math.abs(Math.sin(globalWalkTimer * 2.5 + idx)) * 4), s.width, s.height);
+    }
+  });
+  data.spiderWebs?.forEach(web => { if (web.alive) ctx.drawImage(images.web, web.x, web.y, web.width, web.height); });
+  data.eagles?.forEach(e => {
+    if (e.alive) {
+      let img = Math.floor(e.wingFlapTimer) % 2 === 0 ? images.eagle1 : images.eagle2;
+      if (e.state === 'attacking') img = images.eagleAttack;
+      else if (e.state === 'back_attack') img = images.eagleAttack2;
+      ctx.drawImage(img, e.x, e.y, e.width, e.height);
+    }
+  });
 
-  if (currentLevel === 5) {
-    spidersFase5.forEach((spider, index) => {
-      if (spider.alive) {
-        let currentSpiderImg = spider.direction === 1 ? spiderRightImg : spiderLeftImg;
-        if (spider.isAttacking && spiderAttackLoaded) currentSpiderImg = spiderAttackImg;
-        const walkBounce = spider.isAttacking ? 0 : Math.abs(Math.sin(globalWalkTimer * 2.5 + index)) * 4;
-        ctx.drawImage(currentSpiderImg, spider.x, spider.y - walkBounce, spider.width, spider.height);
-      }
-    });
-    spiderWebsFase5.forEach(web => { if (web.alive && webLoaded) ctx.drawImage(webImg, web.x, web.y, web.width, web.height); });
-  }
-
-  // Desenhar 4 Águias (Fase 6)
-  if (currentLevel === 6) {
-    eaglesFase6.forEach(eagle => {
-      if (eagle.alive) {
-        let currentEagleImg = Math.floor(eagle.wingFlapTimer) % 2 === 0 ? eagle1Img : eagle2Img;
-
-        if (eagle.state === 'attacking' && eagleAttackLoaded) {
-          currentEagleImg = eagleAttackImg;
-        } else if (eagle.state === 'back_attack' && eagleAttack2Loaded) {
-          currentEagleImg = eagleAttack2Img;
-        }
-
-        ctx.drawImage(currentEagleImg, eagle.x, eagle.y, eagle.width, eagle.height);
-      }
-    });
-  }
-
-  // Desenhar Ben
+  // Desenhar Ben (Prioridade: Defesa -> Ataque -> Corrida -> Parado)
   if (ben.alive) {
-    if (ben.isAttacking) {
-      if (ben.facing === 'right') ctx.drawImage(benAttackRightImg, ben.x, ben.y, ben.width + 20, ben.height);
-      else ctx.drawImage(benAttackLeftImg, ben.x - 20, ben.y, ben.width + 20, ben.height);
+    if (ben.isDefending) {
+      // Ben Defendendo com ben_left_def.png ou ben_right_def.png
+      const img = ben.facing === 'right' ? images.benDefRight : images.benDefLeft;
+      ctx.drawImage(img, ben.x, ben.y, ben.width, ben.height);
+    } else if (ben.isAttacking) {
+      const img = ben.facing === 'right' ? images.benAttackRight : images.benAttackLeft;
+      ctx.drawImage(img, ben.facing === 'right' ? ben.x : ben.x - 20, ben.y, ben.width + 20, ben.height);
+    } else if (ben.velocityX !== 0) {
+      const frame = (Math.floor(ben.animTimer) % 4) + 1;
+      const dirKey = ben.facing === 'right' ? 'benRight' : 'benLeft';
+      ctx.drawImage(images[`${dirKey}${frame}`], ben.x, ben.y, ben.width, ben.height);
     } else {
       ctx.save();
       if (ben.facing === 'left') {
-        ctx.translate(ben.x + ben.width, ben.y);
-        ctx.scale(-1, 1);
-        ctx.drawImage(benImg, 0, 0, ben.width, ben.height);
-      } else ctx.drawImage(benImg, ben.x, ben.y, ben.width, ben.height);
+        ctx.translate(ben.x + ben.width, ben.y); ctx.scale(-1, 1);
+        ctx.drawImage(images.ben, 0, 0, ben.width, ben.height);
+      } else {
+        ctx.drawImage(images.ben, ben.x, ben.y, ben.width, ben.height);
+      }
       ctx.restore();
     }
   }
@@ -871,6 +724,9 @@ function draw() {
   }
 }
 
+// =============================================================================
+// 9. LOOP PRINCIPAL DE EXECUÇÃO
+// =============================================================================
 function gameLoop() {
   update();
   draw();
