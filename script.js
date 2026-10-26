@@ -9,6 +9,7 @@ let currentLevel = 1;
 let levelCompleted = false;
 let cameraX = 0;
 let globalWalkTimer = 0;
+let nextLevelAfterCutscene = 1;
 
 const levelWidth = 4000;
 const gravity = 0.6;
@@ -21,7 +22,7 @@ const inGameMenuBtn = { x: canvas.width - 110, y: 15, width: 90, height: 35 };
 let lastFrameTime = 0;
 const fpsInterval = 1000 / 60;
 
-// Elementos da Cutscene
+// Elementos e Lógica da Cutscene (Vídeo)
 const cutsceneVideo = document.getElementById('cutsceneVideo');
 const skipCutsceneBtn = document.getElementById('skipCutsceneBtn');
 
@@ -37,13 +38,14 @@ skipCutsceneBtn.addEventListener('touchstart', (e) => {
   endCutscene();
 }, { passive: false });
 
-function startCutscene() {
+function startCutscene(targetLevel = 1) {
+  nextLevelAfterCutscene = targetLevel;
   gameState = 'cutscene';
   skipCutsceneBtn.style.display = 'flex';
   cutsceneVideo.currentTime = 0;
   
   cutsceneVideo.play().catch(err => {
-    console.log("Autoplay bloqueado ou vídeo ausente, avançando para a Fase 1:", err);
+    console.log("Autoplay bloqueado ou vídeo ausente, avançando de fase:", err);
     endCutscene();
   });
 }
@@ -51,7 +53,7 @@ function startCutscene() {
 function endCutscene() {
   cutsceneVideo.pause();
   skipCutsceneBtn.style.display = 'none';
-  loadLevel(1);
+  loadLevel(nextLevelAfterCutscene);
 }
 
 // =============================================================================
@@ -267,11 +269,18 @@ function restartGame() {
 
 function handleAction() {
   if (gameState !== 'playing') return false;
+
   if (levelCompleted) {
-    if (currentLevel < 8) loadLevel(currentLevel + 1);
-    else gameState = 'menu';
+    if (currentLevel === 8) {
+      startCutscene(9); // Dispara o vídeo antes de ir para a Fase 9
+    } else if (currentLevel < 8) {
+      loadLevel(currentLevel + 1);
+    } else {
+      gameState = 'menu';
+    }
     return true;
   }
+
   if (!ben.alive) {
     restartGame();
     return true;
@@ -283,7 +292,7 @@ function handleAction() {
 // 5. MENUS E CONTROLES DE TOQUE
 // =============================================================================
 const menuButtons = [
-  { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => startCutscene() },
+  { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => startCutscene(1) },
   { label: 'FASES', x: canvas.width / 2 - 110, y: 255, width: 220, height: 55, action: () => gameState = 'level_select' },
   { label: 'CRÉDITOS', x: canvas.width / 2 - 110, y: 330, width: 220, height: 55, action: () => gameState = 'credits' }
 ];
@@ -324,8 +333,10 @@ function handleCanvasClick(clientX, clientY) {
       gameState = 'menu';
       return;
     }
-    handleAction();
-    return;
+    if (levelCompleted || !ben.alive) {
+      handleAction();
+      return;
+    }
   }
 
   if (gameState === 'menu') {
@@ -1025,18 +1036,18 @@ function draw() {
     if (currentLevel < 8) {
       ctx.fillText(`FASE ${currentLevel} CONCLUÍDA!`, canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Toque na tela ou aperte PULAR/ESPAÇO para ir para a Fase ${currentLevel + 1}!`, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText(`Toque na tela ou aperte PULAR/ESPAÇO para ir para a próxima fase!`, canvas.width / 2, canvas.height / 2 + 30);
     } else {
-      ctx.fillText('PARABÉNS! ZEROU O JOGO COMPLETO!', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillText('FASE 8 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Pontuação Final Épica: ${ben.score}`, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText(`Toque na tela para assistir a história e avançar!`, canvas.width / 2, canvas.height / 2 + 30);
     }
     ctx.textAlign = 'left';
   }
 }
 
 // =============================================================================
-// 8. LOOP PRINCIPAL
+// 8. LOOP PRINCIPAL DE EXECUÇÃO
 // =============================================================================
 function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
