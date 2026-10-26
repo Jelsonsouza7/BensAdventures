@@ -2,21 +2,35 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>As Aventuras do Ben - Fase 1: Praia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="screen-orientation" content="landscape">
+  <title>Ben's Adventures</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="game-container">
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+    <!-- ELEMENTO DE VÍDEO PARA A CUTSCENE -->
+    <video id="cutsceneVideo" src="historia1.mp4" playsinline style="display: none;"></video>
     
-    <!-- Controles para Telemóvel (Touch) -->
+    <!-- BOTÃO PARA PULAR A CUTSCENE -->
+    <div id="skipCutsceneBtn" class="touch-btn skip-btn" style="display: none;">
+      PULAR ➔
+    </div>
+
+    <!-- CONTROLES TOUCH MOBILE -->
     <div class="touch-controls">
-      <div class="d-pad">
-        <button id="btnLeft" class="touch-btn">◄</button>
-        <button id="btnRight" class="touch-btn">►</button>
+      <div class="dpad">
+        <div id="btnLeft" class="touch-btn">◀</div>
+        <div id="btnRight" class="touch-btn">▶</div>
       </div>
-      <button id="btnJump" class="touch-btn jump-btn">PULAR</button>
+
+      <div class="action-buttons">
+        <div id="btnAttack" class="touch-btn btn-atk">ATK</div>
+        <div id="btnJump" class="touch-btn">PULAR</div>
+      </div>
     </div>
   </div>
 
