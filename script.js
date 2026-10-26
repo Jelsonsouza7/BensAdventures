@@ -109,7 +109,14 @@ for (let i = 1; i <= 3; i++) {
 loadImg('slandAtk', 'sland_atk.png');
 loadImg('tel', 'tel.png');
 
-for (let i = 1; i <= 8; i++) {
+// Sprites do Alien da Fase 9 (Sem alien4)
+loadImg('alien1', 'alien1.png');
+loadImg('alien2', 'alien2.png');
+loadImg('alien3', 'alien3.png');
+loadImg('pwralien1', 'pwralien1.png');
+loadImg('pwralien2', 'pwralien2.png');
+
+for (let i = 1; i <= 9; i++) {
   loadImg(`bg${i}`, `tela${i}.jfif`);
 }
 
@@ -232,6 +239,17 @@ const LEVELS_DATA = {
       { x: 3300, y: groundY - 180, width: 180, height: 180, speed: 3.0, facing: 'left', state: 'chasing', animTimer: 0, stateTimer: 0, telScale: 1, telX: 0, telY: 0, alive: true },
       { x: 3600, y: groundY - 180, width: 180, height: 180, speed: 3.1, facing: 'left', state: 'chasing', animTimer: 0, stateTimer: 0, telScale: 1, telX: 0, telY: 0, alive: true }
     ]
+  },
+  9: {
+    bgKey: 'bg9',
+    items: [600, 1300, 2100, 2900, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    aliens: [
+      { x: 800, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 1600, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 2400, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 3200, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true }
+    ],
+    alienProjectiles: []
   }
 };
 
@@ -272,8 +290,8 @@ function handleAction() {
 
   if (levelCompleted) {
     if (currentLevel === 8) {
-      startCutscene(9); // Dispara o vídeo antes de ir para a Fase 9
-    } else if (currentLevel < 8) {
+      startCutscene(9);
+    } else if (currentLevel < 9) {
       loadLevel(currentLevel + 1);
     } else {
       gameState = 'menu';
@@ -351,7 +369,7 @@ function handleCanvasClick(clientX, clientY) {
       const col = (i - 1) % 5, row = Math.floor((i - 1) / 5);
       const btnX = startX + col * (btnW + gap), btnY = 150 + row * (btnH + gap);
       if (clickX >= btnX && clickX <= btnX + btnW && clickY >= btnY && clickY <= btnY + btnH) {
-        if (i <= 8) loadLevel(i);
+        if (i <= 9) loadLevel(i);
       }
     }
     if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) gameState = 'menu';
@@ -790,6 +808,93 @@ function update() {
     }
   });
 
+  // Lógica dos Aliens (Fase 9 com LEVITAÇÃO e disparo do alto)
+  data.aliens?.forEach(alien => {
+    if (alien.alive) {
+      const dist = Math.abs(ben.x - alien.x);
+
+      if (alien.attackStage === 'idle') {
+        if (dist < 450 && alien.attackCooldown <= 0) {
+          alien.attackStage = 'rising';
+        }
+      } 
+      else if (alien.attackStage === 'rising') {
+        alien.y -= 3; // Eleva o Alien suavemente
+        if (alien.y <= alien.baseY - 110) { // Subiu 110px no ar
+          alien.attackStage = 'shoot_high';
+          alien.stageTimer = 18;
+
+          // Calcula a trajetória em direção ao herói
+          const startX = alien.x - 20;
+          const startY = alien.y + 30;
+          const targetX = ben.x + ben.width / 2;
+          const targetY = ben.y + ben.height / 2;
+
+          const dx = targetX - startX;
+          const dy = targetY - startY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const projSpeed = 7;
+
+          data.alienProjectiles.push({
+            x: startX,
+            y: startY,
+            width: 45,
+            height: 45,
+            vx: (dx / distance) * projSpeed,
+            vy: (dy / distance) * projSpeed,
+            flipTimer: 0,
+            alive: true
+          });
+        }
+      } 
+      else if (alien.attackStage === 'shoot_high') {
+        if (--alien.stageTimer <= 0) {
+          alien.attackStage = 'descending';
+        }
+      } 
+      else if (alien.attackStage === 'descending') {
+        alien.y += 3; // Baixa de volta para o chão
+        if (alien.y >= alien.baseY) {
+          alien.y = alien.baseY;
+          alien.attackStage = 'idle';
+          alien.attackCooldown = 130; // Tempo de recarga
+        }
+      }
+
+      if (alien.attackCooldown > 0) alien.attackCooldown--;
+
+      if (isColliding(ben, alien)) {
+        if (!ben.isDefending) ben.alive = false;
+      }
+
+      if (attackArea && isColliding(attackArea, alien)) {
+        alien.alive = false;
+        ben.score += 250;
+      }
+    }
+  });
+
+  // Projéteis Direcionais dos Aliens (pwralien2.png girando em diagonal do alto)
+  data.alienProjectiles?.forEach(p => {
+    if (p.alive) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.flipTimer += 0.25;
+
+      if (isColliding(ben, p)) {
+        if (ben.isDefending) {
+          p.alive = false; // Escudo bloqueia o tiro vindo de cima
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      if (p.y >= groundY || p.x < cameraX - 100 || p.x > cameraX + canvas.width + 100) {
+        p.alive = false;
+      }
+    }
+  });
+
   const remainingSlands = data.slands ? data.slands.filter(s => s.alive).length : 0;
   const benCenterX = ben.x + ben.width / 2, benCenterY = ben.y + ben.height / 2;
 
@@ -992,6 +1097,29 @@ function draw() {
     }
   });
 
+  // Desenho dos Aliens Levitando
+  data.aliens?.forEach(alien => {
+    if (alien.alive) {
+      let img = images.alien1;
+      if (alien.attackStage === 'rising' || alien.attackStage === 'descending') img = images.alien2;
+      else if (alien.attackStage === 'shoot_high') img = images.alien3;
+
+      ctx.drawImage(img, alien.x, alien.y, alien.width, alien.height);
+    }
+  });
+
+  // Desenho dos Projéteis dos Aliens (Efeito de roda com pwralien2.png)
+  data.alienProjectiles?.forEach(p => {
+    if (p.alive) {
+      ctx.save();
+      const isFlipped = Math.floor(p.flipTimer) % 2 === 0;
+      ctx.translate(p.x + p.width / 2, p.y + p.height / 2);
+      if (isFlipped) ctx.scale(-1, 1);
+      ctx.drawImage(images.pwralien2, -p.width / 2, -p.height / 2, p.width, p.height);
+      ctx.restore();
+    }
+  });
+
   if (ben.alive) {
     if (ben.isDefending) {
       const img = ben.facing === 'right' ? images.benDefRight : images.benDefLeft;
@@ -1036,11 +1164,15 @@ function draw() {
     if (currentLevel < 8) {
       ctx.fillText(`FASE ${currentLevel} CONCLUÍDA!`, canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Toque na tela ou aperte PULAR/ESPAÇO para ir para a próxima fase!`, canvas.width / 2, canvas.height / 2 + 30);
-    } else {
+      ctx.fillText(`Toque na tela para ir para a próxima fase!`, canvas.width / 2, canvas.height / 2 + 30);
+    } else if (currentLevel === 8) {
       ctx.fillText('FASE 8 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
       ctx.fillText(`Toque na tela para assistir a história e avançar!`, canvas.width / 2, canvas.height / 2 + 30);
+    } else {
+      ctx.fillText('FASE 9 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
+      ctx.fillText(`Ameaça Alienígena Derrotada! Pontuação: ${ben.score}`, canvas.width / 2, canvas.height / 2 + 30);
     }
     ctx.textAlign = 'left';
   }
