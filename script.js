@@ -109,10 +109,11 @@ for (let i = 1; i <= 3; i++) {
 loadImg('slandAtk', 'sland_atk.png');
 loadImg('tel', 'tel.png');
 
-// Sprites do Alien da Fase 9 (Sem alien4)
+// Sprites do Alien da Fase 9
 loadImg('alien1', 'alien1.png');
 loadImg('alien2', 'alien2.png');
 loadImg('alien3', 'alien3.png');
+loadImg('defalien', 'defalien.png');
 loadImg('pwralien1', 'pwralien1.png');
 loadImg('pwralien2', 'pwralien2.png');
 
@@ -244,10 +245,10 @@ const LEVELS_DATA = {
     bgKey: 'bg9',
     items: [600, 1300, 2100, 2900, 3600].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
     aliens: [
-      { x: 800, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
-      { x: 1600, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
-      { x: 2400, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
-      { x: 3200, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true }
+      { x: 800, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, lives: 3, hitCooldown: 0, defendTimer: 0, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 1600, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, lives: 3, hitCooldown: 0, defendTimer: 0, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 2400, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, lives: 3, hitCooldown: 0, defendTimer: 0, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true },
+      { x: 3200, y: groundY - 100, baseY: groundY - 100, width: 90, height: 100, lives: 3, hitCooldown: 0, defendTimer: 0, attackCooldown: 0, attackStage: 'idle', stageTimer: 0, alive: true }
     ],
     alienProjectiles: []
   }
@@ -808,56 +809,70 @@ function update() {
     }
   });
 
-  // Lógica dos Aliens (Fase 9 com LEVITAÇÃO e disparo do alto)
+  // Lógica dos Aliens com 3 VIDAS, DEFESA E ACELERAÇÃO DE ATAQUES
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       const dist = Math.abs(ben.x - alien.x);
 
-      if (alien.attackStage === 'idle') {
-        if (dist < 450 && alien.attackCooldown <= 0) {
-          alien.attackStage = 'rising';
-        }
-      } 
-      else if (alien.attackStage === 'rising') {
-        alien.y -= 3; // Eleva o Alien suavemente
-        if (alien.y <= alien.baseY - 110) { // Subiu 110px no ar
-          alien.attackStage = 'shoot_high';
-          alien.stageTimer = 18;
+      if (alien.defendTimer > 0) {
+        alien.defendTimer--;
+      }
 
-          // Calcula a trajetória em direção ao herói
-          const startX = alien.x - 20;
-          const startY = alien.y + 30;
-          const targetX = ben.x + ben.width / 2;
-          const targetY = ben.y + ben.height / 2;
+      if (alien.hitCooldown > 0) {
+        alien.hitCooldown--;
+      }
 
-          const dx = targetX - startX;
-          const dy = targetY - startY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const projSpeed = 7;
+      // Sequência de Levitação e Ataque
+      if (alien.defendTimer <= 0) {
+        if (alien.attackStage === 'idle') {
+          if (dist < 450 && alien.attackCooldown <= 0) {
+            alien.attackStage = 'rising';
+          }
+        } 
+        else if (alien.attackStage === 'rising') {
+          alien.y -= 3;
+          if (alien.y <= alien.baseY - 110) {
+            alien.attackStage = 'shoot_high';
+            alien.stageTimer = 18;
 
-          data.alienProjectiles.push({
-            x: startX,
-            y: startY,
-            width: 45,
-            height: 45,
-            vx: (dx / distance) * projSpeed,
-            vy: (dy / distance) * projSpeed,
-            flipTimer: 0,
-            alive: true
-          });
-        }
-      } 
-      else if (alien.attackStage === 'shoot_high') {
-        if (--alien.stageTimer <= 0) {
-          alien.attackStage = 'descending';
-        }
-      } 
-      else if (alien.attackStage === 'descending') {
-        alien.y += 3; // Baixa de volta para o chão
-        if (alien.y >= alien.baseY) {
-          alien.y = alien.baseY;
-          alien.attackStage = 'idle';
-          alien.attackCooldown = 130; // Tempo de recarga
+            const startX = alien.x - 20;
+            const startY = alien.y + 30;
+            const targetX = ben.x + ben.width / 2;
+            const targetY = ben.y + ben.height / 2;
+
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const projSpeed = 7;
+
+            data.alienProjectiles.push({
+              x: startX,
+              y: startY,
+              width: 45,
+              height: 45,
+              vx: (dx / distance) * projSpeed,
+              vy: (dy / distance) * projSpeed,
+              flipTimer: 0,
+              alive: true
+            });
+          }
+        } 
+        else if (alien.attackStage === 'shoot_high') {
+          if (--alien.stageTimer <= 0) {
+            alien.attackStage = 'descending';
+          }
+        } 
+        else if (alien.attackStage === 'descending') {
+          alien.y += 3;
+          if (alien.y >= alien.baseY) {
+            alien.y = alien.baseY;
+            alien.attackStage = 'idle';
+
+            // Quanto MENOS vidas, MAIS RÁPIDO o ataque recarrega!
+            if (alien.lives === 3) alien.attackCooldown = 130;
+            else if (alien.lives === 2) alien.attackCooldown = 80;
+            else if (alien.lives === 1) alien.attackCooldown = 40;
+          }
         }
       }
 
@@ -867,14 +882,31 @@ function update() {
         if (!ben.isDefending) ben.alive = false;
       }
 
-      if (attackArea && isColliding(attackArea, alien)) {
-        alien.alive = false;
-        ben.score += 250;
+      // Ataque do Herói ao Alien
+      if (attackArea && isColliding(attackArea, alien) && alien.hitCooldown <= 0) {
+        alien.lives--;
+        alien.hitCooldown = 35; // Invulnerabilidade temporária pós-golpe
+
+        if (alien.lives > 0) {
+          // Ativa animação de defesa com defalien.png
+          alien.defendTimer = 25;
+          alien.attackStage = 'idle';
+          alien.y = alien.baseY; // Cancela levitação se estivesse no ar
+
+          // Empurra nosso Herói para trás ao ser atingido!
+          const pushDirection = ben.x < alien.x ? -1 : 1;
+          ben.x += pushDirection * 110;
+          ben.x = Math.max(0, Math.min(levelWidth - ben.width, ben.x));
+        } else {
+          // Morre no 3º ataque
+          alien.alive = false;
+          ben.score += 500;
+        }
       }
     }
   });
 
-  // Projéteis Direcionais dos Aliens (pwralien2.png girando em diagonal do alto)
+  // Projéteis dos Aliens
   data.alienProjectiles?.forEach(p => {
     if (p.alive) {
       p.x += p.vx;
@@ -883,7 +915,7 @@ function update() {
 
       if (isColliding(ben, p)) {
         if (ben.isDefending) {
-          p.alive = false; // Escudo bloqueia o tiro vindo de cima
+          p.alive = false;
         } else {
           ben.alive = false;
         }
@@ -1097,18 +1129,32 @@ function draw() {
     }
   });
 
-  // Desenho dos Aliens Levitando
+  // Desenho dos Aliens com expansão de defalien.png
   data.aliens?.forEach(alien => {
     if (alien.alive) {
-      let img = images.alien1;
-      if (alien.attackStage === 'rising' || alien.attackStage === 'descending') img = images.alien2;
-      else if (alien.attackStage === 'shoot_high') img = images.alien3;
+      if (alien.defendTimer > 0) {
+        // Estado de Defesa: Desenha expandido com defalien.png
+        ctx.save();
+        const scale = 1.35;
+        const expWidth = alien.width * scale;
+        const expHeight = alien.height * scale;
+        const expX = alien.x - (expWidth - alien.width) / 2;
+        const expY = alien.y - (expHeight - alien.height);
 
-      ctx.drawImage(img, alien.x, alien.y, alien.width, alien.height);
+        ctx.drawImage(images.defalien, expX, expY, expWidth, expHeight);
+        ctx.restore();
+      } else {
+        // Estado Normal e Animações de Ataque
+        let img = images.alien1;
+        if (alien.attackStage === 'rising' || alien.attackStage === 'descending') img = images.alien2;
+        else if (alien.attackStage === 'shoot_high') img = images.alien3;
+
+        ctx.drawImage(img, alien.x, alien.y, alien.width, alien.height);
+      }
     }
   });
 
-  // Desenho dos Projéteis dos Aliens (Efeito de roda com pwralien2.png)
+  // Desenho dos Projéteis dos Aliens
   data.alienProjectiles?.forEach(p => {
     if (p.alive) {
       ctx.save();
