@@ -308,7 +308,7 @@ function handleAction() {
 }
 
 // =============================================================================
-// 5. MENUS E CONTROLES DE TOQUE
+// 5. MENUS E CONTROLES DE TOQUE (ANALÓGICO VIRTUAL + DEFESA)
 // =============================================================================
 const menuButtons = [
   { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => startCutscene(1) },
@@ -408,18 +408,88 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
 });
 
-// Controles Touch Botoes
-const btnLeft = document.getElementById('btnLeft'), btnRight = document.getElementById('btnRight');
-const btnJump = document.getElementById('btnJump'), btnAttack = document.getElementById('btnAttack');
+// ANALÓGICO VIRTUAL (TOUCH / JOYSTICK)
+const analogJoystick = document.getElementById('analogJoystick');
+const analogStick = document.getElementById('analogStick');
+
+if (analogJoystick) {
+  let joystickActive = false;
+
+  function processJoystick(touchX, touchY) {
+    const rect = analogJoystick.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const deltaX = touchX - centerX;
+    const deltaY = touchY - centerY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const maxDistance = rect.width / 2 - 10;
+
+    let angle = Math.atan2(deltaY, deltaX);
+    let moveDist = Math.min(distance, maxDistance);
+
+    const stickX = Math.cos(angle) * moveDist;
+    const stickY = Math.sin(angle) * moveDist;
+
+    analogStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
+
+    if (distance > 15) {
+      keys.right = deltaX > 20;
+      keys.left = deltaX < -20;
+      keys.down = deltaY > 25; // Arrasto para baixo ativa Defesa
+
+      if (deltaY < -30 && ben.grounded && ben.alive && !ben.isDefending) {
+        ben.velocityY = ben.jumpForce;
+        ben.grounded = false;
+      }
+    } else {
+      keys.right = false; keys.left = false; keys.down = false;
+    }
+  }
+
+  function resetJoystick() {
+    joystickActive = false;
+    analogStick.style.transform = 'translate(0px, 0px)';
+    keys.right = false;
+    keys.left = false;
+    keys.down = false;
+  }
+
+  analogJoystick.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    joystickActive = true;
+    processJoystick(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (joystickActive && e.touches.length > 0) {
+      processJoystick(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => resetJoystick());
+  window.addEventListener('touchcancel', () => resetJoystick());
+}
+
+// BOTOES DE AÇÃO (DEFESA, ATAQUE, PULO)
+const btnDefend = document.getElementById('btnDefend');
+const btnAttack = document.getElementById('btnAttack');
+const btnJump = document.getElementById('btnJump');
 
 function bindTouchBtn(el, onPress, onRelease) {
   if (!el) return;
   el.addEventListener('touchstart', (e) => { e.preventDefault(); onPress(); }, { passive: false });
   el.addEventListener('touchend', (e) => { e.preventDefault(); onRelease(); }, { passive: false });
+  el.addEventListener('touchcancel', (e) => { e.preventDefault(); onRelease(); }, { passive: false });
 }
 
-bindTouchBtn(btnLeft, () => { if (ben.alive && gameState === 'playing') keys.left = true; }, () => keys.left = false);
-bindTouchBtn(btnRight, () => { if (ben.alive && gameState === 'playing') keys.right = true; }, () => keys.right = false);
+bindTouchBtn(btnDefend, () => {
+  if (ben.alive && gameState === 'playing' && ben.grounded) {
+    keys.down = true;
+  }
+}, () => {
+  keys.down = false;
+});
 
 bindTouchBtn(btnJump, () => {
   if (!handleAction() && ben.grounded && gameState === 'playing' && !ben.isDefending) {
@@ -817,7 +887,7 @@ function update() {
     }
   });
 
-  // Lógica dos Aliens (Ataque 1: Deslize -> Ataque 2: Poder -> Repete até 3 Vidas)
+  // Lógica dos Aliens
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       const dist = Math.abs(ben.x - alien.x);
@@ -835,27 +905,23 @@ function update() {
         if (alien.attackStage === 'idle') {
           if (dist < 450 && alien.attackCooldown <= 0) {
             if (alien.nextAttackType === 'dash') {
-              // Inicia Ataque 1: Deslize para cima do herói
               alien.attackStage = 'dashing';
-              alien.dashDistance = 220; // Distância total do deslize
+              alien.dashDistance = 220;
               alien.dashDir = ben.x < alien.x ? -1 : 1;
             } else {
-              // Inicia Ataque 2: Disparo de Poder
               alien.attackStage = 'arm_alien2';
               alien.stageTimer = 10;
             }
           }
         } 
         else if (alien.attackStage === 'dashing') {
-          // Velocidade do deslize aumenta conforme toma golpes
           const dashSpeed = alien.lives === 3 ? 8 : (alien.lives === 2 ? 11 : 15);
           alien.x += dashSpeed * alien.dashDir;
           alien.dashDistance -= dashSpeed;
 
-          // Se colidir com o herói durante o deslize
           if (isColliding(ben, alien)) {
             if (ben.isDefending) {
-              ben.knockbackX = alien.dashDir * 16; // Empurra o herói para trás suavemente
+              ben.knockbackX = alien.dashDir * 16;
             } else {
               ben.alive = false;
             }
@@ -863,7 +929,7 @@ function update() {
 
           if (alien.dashDistance <= 0) {
             alien.attackStage = 'idle';
-            alien.nextAttackType = 'shoot'; // Próximo ataque será o tiro
+            alien.nextAttackType = 'shoot';
             alien.attackCooldown = alien.lives === 3 ? 70 : (alien.lives === 2 ? 45 : 20);
           }
         }
@@ -878,7 +944,6 @@ function update() {
             alien.attackStage = 'shoot';
             alien.stageTimer = 15;
 
-            // Disparo do projétil pwralien1
             const dir = ben.x < alien.x ? -1 : 1;
             data.alienProjectiles.push({
               x: dir === -1 ? alien.x - 30 : alien.x + alien.width,
@@ -900,7 +965,7 @@ function update() {
         else if (alien.attackStage === 'recoy_alien3') {
           if (--alien.stageTimer <= 0) {
             alien.attackStage = 'idle';
-            alien.nextAttackType = 'dash'; // Próximo ataque volta a ser o deslize
+            alien.nextAttackType = 'dash';
             alien.attackCooldown = alien.lives === 3 ? 90 : (alien.lives === 2 ? 50 : 25);
           }
         }
@@ -912,7 +977,6 @@ function update() {
         if (!ben.isDefending) ben.alive = false;
       }
 
-      // Golpe do Ben no Alien
       if (attackArea && isColliding(attackArea, alien) && alien.hitCooldown <= 0) {
         alien.lives--;
         alien.hitCooldown = 35;
@@ -1154,11 +1218,10 @@ function draw() {
     }
   });
 
-  // Desenho dos Aliens (Mais altos + Animações)
+  // Desenho dos Aliens
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       if (alien.defendTimer > 0) {
-        // Onda de Choque Radiante de Defesa
         ctx.save();
         ctx.beginPath();
         ctx.arc(alien.x + alien.width / 2, alien.y + alien.height / 2, alien.shockwaveRadius, 0, Math.PI * 2);
@@ -1167,7 +1230,6 @@ function draw() {
         ctx.stroke();
         ctx.restore();
 
-        // Sprite defalien.png levemente aumentado no impacto
         ctx.save();
         const scale = 1.18;
         const expW = alien.width * scale;
@@ -1179,7 +1241,7 @@ function draw() {
         ctx.restore();
       } else {
         let img = images.alien1;
-        if (alien.attackStage === 'dashing') img = images.alien2; // Sprite de investida
+        if (alien.attackStage === 'dashing') img = images.alien2;
         else if (alien.attackStage === 'arm_alien2') img = images.alien2;
         else if (alien.attackStage === 'arm_alien3' || alien.attackStage === 'recoy_alien3') img = images.alien3;
         else if (alien.attackStage === 'shoot') img = images.alien3;

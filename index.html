@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="screen-orientation" content="landscape">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Ben's Adventures</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,25 +11,24 @@
   <div id="gameContainer">
     <canvas id="gameCanvas" width="800" height="450"></canvas>
 
-    <!-- ELEMENTO DE VÍDEO PARA A CUTSCENE -->
-    <video id="cutsceneVideo" src="historia1.mp4" playsinline style="display: none;"></video>
-    
-    <!-- BOTÃO PARA PULAR A CUTSCENE -->
-    <div id="skipCutsceneBtn" class="touch-btn skip-btn" style="display: none;">
-      PULAR ➔
+    <!-- Vídeo da Cutscene (Essencial para não travar o script) -->
+    <video id="cutsceneVideo" src="./historia.mp4" playsinline style="display: none;"></video>
+    <button id="skipCutsceneBtn" style="display: none;">PULAR HISTÓRIA ▶</button>
+
+    <!-- D-Pad / Analógico -->
+    <div id="analogJoystick" class="game-controls">
+      <div class="analog-arrow arrow-up">▲</div>
+      <div class="analog-arrow arrow-down">▼</div>
+      <div class="analog-arrow arrow-left">◀</div>
+      <div class="analog-arrow arrow-right">▶</div>
+      <div id="analogStick"></div>
     </div>
 
-    <!-- CONTROLES TOUCH MOBILE -->
-    <div class="touch-controls">
-      <div class="dpad">
-        <div id="btnLeft" class="touch-btn">◀</div>
-        <div id="btnRight" class="touch-btn">▶</div>
-      </div>
-
-      <div class="action-buttons">
-        <div id="btnAttack" class="touch-btn btn-atk">ATK</div>
-        <div id="btnJump" class="touch-btn">PULAR</div>
-      </div>
+    <!-- Botões de Ação -->
+    <div id="actionButtonsGroup" class="game-controls">
+      <button id="btnDefend" class="mobile-action-btn btn-defend">DEFENDER</button>
+      <button id="btnAttack" class="mobile-action-btn btn-attack">ATACAR</button>
+      <button id="btnJump" class="mobile-action-btn btn-jump">PULAR</button>
     </div>
   </div>
 

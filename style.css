@@ -1,20 +1,21 @@
+/* =============================================================================
+   ESTILOS GERAIS E CONTAINER DO JOGO
+   ============================================================================= */
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  margin: 0;
-  padding: 0;
 }
 
-body, html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+body {
   background-color: #000;
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
   font-family: Arial, sans-serif;
 }
 
@@ -22,73 +23,117 @@ body, html {
   position: relative;
   width: 100vw;
   height: 100vh;
+  max-width: 900px;
+  max-height: 500px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-canvas {
+#gameCanvas {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: #000;
+  background-color: #000;
+  display: block;
 }
 
-/* CONTROLES TOUCH PARA MOBILE */
-.touch-controls {
+/* Elementos da Cutscene/Vídeo */
+#cutsceneVideo {
   position: absolute;
-  bottom: 20px;
+  top: 0;
   left: 0;
   width: 100%;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 25px;
-  pointer-events: none; /* Permite clicar no Canvas na área livre */
-  z-index: 10;
+  height: 100%;
+  object-fit: cover;
+  z-index: 50;
 }
 
-.dpad, .action-buttons {
-  display: flex;
-  gap: 15px;
-  pointer-events: auto; /* Apenas os botões capturam o toque */
-}
-
-.touch-btn {
-  width: 65px;
-  height: 65px;
-  background: rgba(0, 80, 208, 0.65);
+#skipCutsceneBtn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 10px 18px;
+  background: rgba(0, 0, 0, 0.8);
   border: 2px solid #00ffff;
-  border-radius: 50%;
-  color: #fff;
+  color: #00ffff;
   font-weight: bold;
-  font-size: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
-  touch-action: manipulation;
+  border-radius: 8px;
+  z-index: 60;
+  cursor: pointer;
 }
 
-.touch-btn:active {
-  background: rgba(0, 255, 255, 0.85);
-  color: #000;
+/* =============================================================================
+   CONTROLES MOBILE ELEVADOS E ANALÓGICO VIRTUAL
+   ============================================================================= */
+
+/* Analógico estilo D-Pad */
+#analogJoystick {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  width: 130px;
+  height: 130px;
+  background: rgba(20, 20, 30, 0.75);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  touch-action: none;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#analogStick {
+  width: 55px;
+  height: 55px;
+  background: radial-gradient(circle, #e0e0e0 0%, #999999 100%);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.analog-arrow {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  pointer-events: none;
+  font-family: sans-serif;
+}
+.arrow-up    { top: 8px; left: 50%; transform: translateX(-50%); }
+.arrow-down  { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.arrow-left  { left: 8px; top: 50%; transform: translateY(-50%); }
+.arrow-right { right: 8px; top: 50%; transform: translateY(-50%); }
+
+/* Grupo de Botões de Ação */
+#actionButtonsGroup {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+}
+
+.mobile-action-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 11px;
+  text-shadow: 1px 1px 2px #000;
+  touch-action: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.mobile-action-btn:active {
   transform: scale(0.92);
 }
 
-.btn-atk {
-  border-color: #ef4444;
-}
-
-/* BOTÃO DE PULAR CUTSCENE */
-.skip-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 20;
-  width: auto;
-  height: 40px;
-  padding: 0 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  pointer-events: auto;
-}
+.btn-defend { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.btn-attack { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+.btn-jump   { background: linear-gradient(135deg, #16a34a, #15803d); }
