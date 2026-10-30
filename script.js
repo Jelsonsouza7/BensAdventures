@@ -1,5 +1,5 @@
 // =============================================================================
-// 1. CONFIGURAÇÕES INICIAIS, CANVAS E CUTSCENE
+// 1. CONFIGURAÇÕES INICIAIS, CANVAS E CUTSCENES
 // =============================================================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -22,38 +22,72 @@ const inGameMenuBtn = { x: canvas.width - 110, y: 15, width: 90, height: 35 };
 let lastFrameTime = 0;
 const fpsInterval = 1000 / 60;
 
-// Elementos e Lógica da Cutscene (Vídeo)
+// Elementos e Lógica de Transição de Vídeos
 const cutsceneVideo = document.getElementById('cutsceneVideo');
 const skipCutsceneBtn = document.getElementById('skipCutsceneBtn');
 
-cutsceneVideo.addEventListener('ended', () => {
-  endCutscene();
-});
-
-skipCutsceneBtn.addEventListener('click', () => {
-  endCutscene();
-});
-skipCutsceneBtn.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  endCutscene();
-}, { passive: false });
-
-function startCutscene(targetLevel = 1) {
-  nextLevelAfterCutscene = targetLevel;
-  gameState = 'cutscene';
-  skipCutsceneBtn.style.display = 'flex';
-  cutsceneVideo.currentTime = 0;
-  
-  cutsceneVideo.play().catch(err => {
-    console.log("Autoplay bloqueado ou vídeo ausente, avançando de fase:", err);
+if (cutsceneVideo) {
+  cutsceneVideo.addEventListener('ended', () => {
     endCutscene();
   });
 }
 
+if (skipCutsceneBtn) {
+  skipCutsceneBtn.addEventListener('click', () => {
+    endCutscene();
+  });
+  skipCutsceneBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    endCutscene();
+  }, { passive: false });
+}
+
+// Inicia Cutscene escolhendo o vídeo certo conforme o nível de destino
+function startCutscene(targetLevel = 1) {
+  nextLevelAfterCutscene = targetLevel;
+  gameState = 'cutscene';
+  updateControlsVisibility();
+
+  // Seleciona o arquivo de vídeo correspondente
+  let videoSrc = '';
+  if (targetLevel === 1) {
+    videoSrc = './video1.mp4'; // Cutscene do Início (Antes da Fase 1)
+  } else if (targetLevel === 9) {
+    videoSrc = './video2.mp4'; // Cutscene da transição Fase 8 -> 9
+  }
+
+  if (cutsceneVideo && videoSrc) {
+    cutsceneVideo.src = videoSrc;
+    cutsceneVideo.style.display = 'block';
+    if (skipCutsceneBtn) skipCutsceneBtn.style.display = 'flex';
+    cutsceneVideo.currentTime = 0;
+    
+    cutsceneVideo.play().catch(err => {
+      console.log("Autoplay bloqueado ou vídeo ausente, avançando de fase:", err);
+      endCutscene();
+    });
+  } else {
+    endCutscene();
+  }
+}
+
 function endCutscene() {
-  cutsceneVideo.pause();
-  skipCutsceneBtn.style.display = 'none';
+  if (cutsceneVideo) {
+    cutsceneVideo.pause();
+    cutsceneVideo.style.display = 'none';
+  }
+  if (skipCutsceneBtn) {
+    skipCutsceneBtn.style.display = 'none';
+  }
   loadLevel(nextLevelAfterCutscene);
+}
+
+// Atualiza a visibilidade dos controles na tela
+function updateControlsVisibility() {
+  const controls = document.querySelectorAll('.game-controls');
+  controls.forEach(ctrl => {
+    ctrl.style.display = (gameState === 'playing') ? 'flex' : 'none';
+  });
 }
 
 // =============================================================================
@@ -279,6 +313,7 @@ function loadLevel(lvl) {
 
   activeLevelData = JSON.parse(JSON.stringify(LEVELS_DATA[lvl]));
   gameState = 'playing';
+  updateControlsVisibility();
 }
 
 function restartGame() {
@@ -291,11 +326,13 @@ function handleAction() {
 
   if (levelCompleted) {
     if (currentLevel === 8) {
+      // Passou do nível 8 -> Toca o video2.mp4 antes da Fase 9
       startCutscene(9);
     } else if (currentLevel < 9) {
       loadLevel(currentLevel + 1);
     } else {
       gameState = 'menu';
+      updateControlsVisibility();
     }
     return true;
   }
@@ -312,8 +349,8 @@ function handleAction() {
 // =============================================================================
 const menuButtons = [
   { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => startCutscene(1) },
-  { label: 'FASES', x: canvas.width / 2 - 110, y: 255, width: 220, height: 55, action: () => gameState = 'level_select' },
-  { label: 'CRÉDITOS', x: canvas.width / 2 - 110, y: 330, width: 220, height: 55, action: () => gameState = 'credits' }
+  { label: 'FASES', x: canvas.width / 2 - 110, y: 255, width: 220, height: 55, action: () => { gameState = 'level_select'; updateControlsVisibility(); } },
+  { label: 'CRÉDITOS', x: canvas.width / 2 - 110, y: 330, width: 220, height: 55, action: () => { gameState = 'credits'; updateControlsVisibility(); } }
 ];
 
 function drawTechButton(x, y, width, height, label, fontSize = 22) {
@@ -350,6 +387,7 @@ function handleCanvasClick(clientX, clientY) {
     if (clickX >= inGameMenuBtn.x && clickX <= inGameMenuBtn.x + inGameMenuBtn.width &&
         clickY >= inGameMenuBtn.y && clickY <= inGameMenuBtn.y + inGameMenuBtn.height) {
       gameState = 'menu';
+      updateControlsVisibility();
       return;
     }
     if (levelCompleted || !ben.alive) {
@@ -373,9 +411,15 @@ function handleCanvasClick(clientX, clientY) {
         if (i <= 9) loadLevel(i);
       }
     }
-    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) gameState = 'menu';
+    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) {
+      gameState = 'menu';
+      updateControlsVisibility();
+    }
   } else if (gameState === 'credits') {
-    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 380 && clickY <= 425) gameState = 'menu';
+    if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 380 && clickY <= 425) {
+      gameState = 'menu';
+      updateControlsVisibility();
+    }
   }
 }
 
@@ -436,7 +480,7 @@ if (analogJoystick) {
     if (distance > 15) {
       keys.right = deltaX > 20;
       keys.left = deltaX < -20;
-      keys.down = deltaY > 25; // Arrasto para baixo ativa Defesa
+      keys.down = deltaY > 25;
 
       if (deltaY < -30 && ben.grounded && ben.alive && !ben.isDefending) {
         ben.velocityY = ben.jumpForce;
@@ -511,7 +555,6 @@ function update() {
 
   globalWalkTimer += 0.2;
 
-  // Knockback Suave (Desaceleração do Herói ao ser empurrado)
   if (Math.abs(ben.knockbackX) > 0.2) {
     ben.x += ben.knockbackX;
     ben.knockbackX *= 0.85;
@@ -1039,23 +1082,26 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Se estiver em Cutscene, o elemento <video> cuida do visual
   if (gameState === 'cutscene') {
-    if (!cutsceneVideo.paused && !cutsceneVideo.ended) {
-      ctx.drawImage(cutsceneVideo, 0, 0, canvas.width, canvas.height);
-    } else {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
+    updateControlsVisibility();
     return;
   }
 
   if (gameState === 'menu') {
-    ctx.drawImage(images.menuBg, 0, 0, canvas.width, canvas.height);
+    updateControlsVisibility();
+    if (images.menuBg && images.menuBg.complete && images.menuBg.naturalWidth !== 0) {
+      ctx.drawImage(images.menuBg, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = '#0a0f24';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     menuButtons.forEach(btn => drawTechButton(btn.x, btn.y, btn.width, btn.height, btn.label));
     return;
   }
 
   if (gameState === 'level_select') {
+    updateControlsVisibility();
     ctx.fillStyle = '#0a0f24'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const btnW = 65, btnH = 50, gap = 15;
     const startX = canvas.width / 2 - ((5 * btnW + 4 * gap) / 2);
@@ -1069,6 +1115,7 @@ function draw() {
   }
 
   if (gameState === 'credits') {
+    updateControlsVisibility();
     ctx.fillStyle = '#0a0f24'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#00ffff'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center';
     ctx.fillText('CRÉDITOS', canvas.width / 2, 120);
@@ -1079,6 +1126,8 @@ function draw() {
     return;
   }
 
+  // Desenho do Jogo em execução
+  updateControlsVisibility();
   ctx.save();
   ctx.translate(-cameraX, 0);
 
@@ -1311,7 +1360,7 @@ function draw() {
     } else if (currentLevel === 8) {
       ctx.fillText('FASE 8 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Toque na tela para assistir a história e avançar!`, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText(`Toque na tela para assistir à história e enfrentar o Boss!`, canvas.width / 2, canvas.height / 2 + 30);
     } else {
       ctx.fillText('FASE 9 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
