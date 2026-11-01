@@ -1,37 +1,45 @@
 // =============================================================================
 // 1. CONFIGURAÇÕES INICIAIS, CANVAS E CUTSCENES
 // =============================================================================
+
+// Obtém o elemento canvas do HTML e o contexto de renderização 2D
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let gameState = 'menu'; // 'menu', 'cutscene', 'level_select', 'credits', 'playing'
+// Variáveis de controle do estado global do jogo
+let gameState = 'menu'; // Estados possíveis: 'menu', 'cutscene', 'level_select', 'credits', 'playing'
 let currentLevel = 1;
 let levelCompleted = false;
 let cameraX = 0;
 let globalWalkTimer = 0;
 let nextLevelAfterCutscene = 1;
 
+// Configurações do mundo e dimensões
 const levelWidth = 4000;
 const gravity = 0.6;
 const groundY = canvas.height - 50;
 
+// Objetos interativos especiais e de interface no mundo
 const portal = { x: 3750, y: groundY - 180, width: 180, height: 180 };
 const abductionLight = { x: 3500, y: groundY - 230, width: 180, height: 230, flipTimer: 0 };
 const inGameMenuBtn = { x: canvas.width - 110, y: 15, width: 90, height: 35 };
 
+// Controle de taxa de quadros (FPS) para manter a velocidade constante
 let lastFrameTime = 0;
-const fpsInterval = 1000 / 60;
+const fpsInterval = 1000 / 60; // Alvo de 60 FPS
 
-// Elementos e Lógica de Transição de Vídeos
+// Elementos de vídeo e botão de pular cutscene
 const cutsceneVideo = document.getElementById('cutsceneVideo');
 const skipCutsceneBtn = document.getElementById('skipCutsceneBtn');
 
+// Evento disparado quando o vídeo da cutscene termina sozinho
 if (cutsceneVideo) {
   cutsceneVideo.addEventListener('ended', () => {
     endCutscene();
   });
 }
 
+// Eventos de clique ou toque no botão de pular cutscene
 if (skipCutsceneBtn) {
   skipCutsceneBtn.addEventListener('click', () => {
     endCutscene();
@@ -42,6 +50,7 @@ if (skipCutsceneBtn) {
   }, { passive: false });
 }
 
+// Função para iniciar uma cutscene antes de fases específicas
 function startCutscene(targetLevel = 1) {
   nextLevelAfterCutscene = targetLevel;
   gameState = 'cutscene';
@@ -54,6 +63,7 @@ function startCutscene(targetLevel = 1) {
     videoSrc = './video2.mp4';
   }
 
+  // Configura e inicia a reprodução do vídeo correspondente
   if (cutsceneVideo && videoSrc) {
     cutsceneVideo.src = videoSrc;
     cutsceneVideo.style.display = 'block';
@@ -69,6 +79,7 @@ function startCutscene(targetLevel = 1) {
   }
 }
 
+// Função para encerrar a cutscene e carregar o próximo nível
 function endCutscene() {
   if (cutsceneVideo) {
     cutsceneVideo.pause();
@@ -80,6 +91,7 @@ function endCutscene() {
   loadLevel(nextLevelAfterCutscene);
 }
 
+// Mostra ou oculta os controles virtuais de toque dependendo se o jogo está rodando
 function updateControlsVisibility() {
   const controls = document.querySelectorAll('.game-controls');
   controls.forEach(ctrl => {
@@ -88,9 +100,11 @@ function updateControlsVisibility() {
 }
 
 // =============================================================================
-// 2. CARREGAMENTO DE IMAGENS
+// 2. CARREGAMENTO DE IMAGENS (SPRITES E CENÁRIOS)
 // =============================================================================
 const images = {};
+
+// Função auxiliar para carregar imagens e armazenar no dicionário global
 function loadImg(key, src) {
   const img = new Image();
   img.src = './' + src;
@@ -98,6 +112,7 @@ function loadImg(key, src) {
   return img;
 }
 
+// Carregamento da interface, menu e animações do personagem principal (Ben)
 loadImg('menuBg', 'inicio.png');
 loadImg('ben', 'ben.png');
 loadImg('benAttackRight', 'ben_attack_right.png');
@@ -110,16 +125,19 @@ for (let i = 1; i <= 4; i++) {
   loadImg(`benLeft${i}`, `ben_left${i}.png`);
 }
 
+// Carregamento de itens, portais e efeitos visuais
 loadImg('coin', 'moeda.png');
 loadImg('portal', 'portal.png');
 loadImg('luz', 'luz.png');
 
+// Carregamento de inimigos básicos (Caranguejos e Morcegos)
 for (let i = 1; i <= 4; i++) {
   loadImg(`crabLeft${i}`, `crab_left${i}.png`);
   loadImg(`crabRight${i}`, `crab_right${i}.png`);
   loadImg(`bat${i}`, `bat${i}.png`);
 }
 
+// Carregamento de elementos de cenários e outros monstros (Zumbis, Aranhas, Águias)
 loadImg('tree', 'tree.png'); loadImg('cave', 'cave.png');
 loadImg('fireball', 'fireball.png'); loadImg('waterfire', 'waterfire.png');
 loadImg('zombieLeft', 'zombie_left.png'); loadImg('zombieRight', 'zombie_right.png');
@@ -128,6 +146,7 @@ loadImg('spiderAttack', 'spider_atack.png'); loadImg('web', 'teia.png');
 loadImg('eagle1', 'aguia1.png'); loadImg('eagle2', 'aguia2.png');
 loadImg('eagleAttack', 'aguia_atack.png'); loadImg('eagleAttack2', 'aguia_atack2.png');
 
+// Inimigos avançados (Esqueletos, Slands, Aliens e Super Chefe)
 loadImg('esqueletoLeft', 'esqueleto_left.png');
 loadImg('esqueletoRight', 'esqueleto_right.png');
 loadImg('esqueletoAtk', 'esqueleto_atk.png');
@@ -140,7 +159,6 @@ for (let i = 1; i <= 3; i++) {
 loadImg('slandAtk', 'sland_atk.png');
 loadImg('tel', 'tel.png');
 
-// Sprites dos Aliens da Fase 9
 loadImg('alien1', 'alien1.png');
 loadImg('alien2', 'alien2.png');
 loadImg('alien3', 'alien3.png');
@@ -148,7 +166,6 @@ loadImg('defalien', 'defalien.png');
 loadImg('pwralien1', 'pwralien1.png');
 loadImg('pwralien2', 'pwralien2.png');
 
-// Sprites do Super Chefe da Fase 10
 for (let i = 1; i <= 4; i++) {
   loadImg(`bossAlien${i}`, `boss_alien${i}.png`);
 }
@@ -158,12 +175,13 @@ loadImg('orb', 'orb.png');
 loadImg('pwrbossAlien2', 'pwrboss_alien2.png');
 loadImg('pwrboss3', 'pwrboss3.png');
 
+// Planos de fundo de cada uma das fases (1 a 10)
 for (let i = 1; i <= 10; i++) {
   loadImg(`bg${i}`, `tela${i}.jfif`);
 }
 
 // =============================================================================
-// 3. ESTRUTURA DAS FASES
+// 3. ESTRUTURA DOS DADOS DE CADA FASE (LEVELS_DATA)
 // =============================================================================
 const LEVELS_DATA = {
   1: {
@@ -311,7 +329,7 @@ const LEVELS_DATA = {
 let activeLevelData = null;
 
 // =============================================================================
-// 4. BEN E COLISÕES
+// 4. BEN (PERSONAGEM PRINCIPAL) E SISTEMA DE COLISÕES
 // =============================================================================
 const ben = {
   x: 50, y: 200, width: 90, height: 90,
@@ -320,11 +338,13 @@ const ben = {
   attackTimer: 0, animTimer: 0, score: 0, alive: true
 };
 
+// Função genérica de colisão por AABB (Caixas delimitadoras)
 function isColliding(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x &&
          a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+// Carrega os dados e reseta as posições para iniciar uma fase específica
 function loadLevel(lvl) {
   currentLevel = lvl;
   levelCompleted = false;
@@ -336,11 +356,13 @@ function loadLevel(lvl) {
   updateControlsVisibility();
 }
 
+// Reinicia o jogo mantendo a pontuação ou resetando dependendo do fluxo
 function restartGame() {
   ben.score = 0;
   loadLevel(currentLevel);
 }
 
+// Lida com cliques/toques para avançar de fase ou reiniciar após morte/conclusão
 function handleAction() {
   if (gameState !== 'playing') return false;
 
@@ -364,7 +386,7 @@ function handleAction() {
 }
 
 // =============================================================================
-// 5. MENUS E CONTROLES DE TOQUE (ANALÓGICO VIRTUAL + DEFESA)
+// 5. MENUS, BOTÕES E CONTROLES (TECLADO E TOQUE)
 // =============================================================================
 const menuButtons = [
   { label: 'INÍCIO', x: canvas.width / 2 - 110, y: 180, width: 220, height: 55, action: () => startCutscene(1) },
@@ -372,6 +394,7 @@ const menuButtons = [
   { label: 'CRÉDITOS', x: canvas.width / 2 - 110, y: 330, width: 220, height: 55, action: () => { gameState = 'credits'; updateControlsVisibility(); } }
 ];
 
+// Desenha botões com um estilo visual futurista/tecnológico
 function drawTechButton(x, y, width, height, label, fontSize = 22) {
   const cut = 12;
   const grad = ctx.createLinearGradient(x, y, x, y + height);
@@ -394,6 +417,7 @@ function drawTechButton(x, y, width, height, label, fontSize = 22) {
   ctx.fillText(label, x + width / 2, y + height / 2 + (fontSize / 3));
 }
 
+// Gerencia cliques e toques na tela do canvas (menus e botões internos)
 function handleCanvasClick(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
@@ -447,7 +471,7 @@ canvas.addEventListener('touchstart', (e) => {
   if (e.touches.length > 0) handleCanvasClick(e.touches[0].clientX, e.touches[0].clientY);
 });
 
-// Controles Teclado
+// Controles via teclado (Setas e teclas WASD + Espaço)
 const keys = { right: false, left: false, down: false };
 window.addEventListener('keydown', (e) => {
   if (gameState !== 'playing' || handleAction()) return;
@@ -471,7 +495,7 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
 });
 
-// ANALÓGICO VIRTUAL (TOUCH / JOYSTICK)
+// ANALÓGICO VIRTUAL (CONTROLE POR TOQUE NA TELA)
 const analogJoystick = document.getElementById('analogJoystick');
 const analogStick = document.getElementById('analogStick');
 
@@ -534,7 +558,7 @@ if (analogJoystick) {
   window.addEventListener('touchcancel', () => resetJoystick());
 }
 
-// BOTOES DE AÇÃO (DEFESA, ATAQUE, PULO)
+// BOTOES DE AÇÃO NA TELA MÓVEL (DEFESA, ATAQUE, PULO)
 const btnDefend = document.getElementById('btnDefend');
 const btnAttack = document.getElementById('btnAttack');
 const btnJump = document.getElementById('btnJump');
@@ -567,13 +591,14 @@ bindTouchBtn(btnAttack, () => {
 }, () => {});
 
 // =============================================================================
-// 6. LÓGICA DE ATUALIZAÇÃO DO JOGO (UPDATE)
+// 6. ATUALIZAÇÃO DA LÓGICA DO JOGO (UPDATE)
 // =============================================================================
 function update() {
   if (gameState !== 'playing' || levelCompleted || !ben.alive) return;
 
   globalWalkTimer += 0.2;
 
+  // Lógica de empurrão (knockback) quando o Ben sofre danos ou interage
   if (Math.abs(ben.knockbackX) > 0.2) {
     ben.x += ben.knockbackX;
     ben.knockbackX *= 0.85;
@@ -581,6 +606,7 @@ function update() {
     ben.knockbackX = 0;
   }
 
+  // Estado de defesa (agachar/defender)
   if (keys.down && ben.grounded) {
     ben.isDefending = true;
     ben.velocityX = 0;
@@ -588,6 +614,7 @@ function update() {
     ben.isDefending = false;
   }
 
+  // Movimentação horizontal do Ben
   if (!ben.isDefending) {
     if (keys.right) {
       ben.velocityX = ben.speed; ben.facing = 'right'; ben.animTimer += 0.2;
@@ -598,23 +625,28 @@ function update() {
     }
   }
 
+  // Atualiza posições com base na velocidade e gravidade
   ben.x += ben.velocityX;
   ben.y += ben.velocityY;
 
   if (!ben.grounded) ben.velocityY += gravity;
 
+  // Colisão com o chão padrão
   if (ben.y + ben.height >= groundY) {
     ben.y = groundY - ben.height; ben.velocityY = 0; ben.grounded = true;
   } else {
     ben.grounded = false;
   }
 
+  // Limita o personagem dentro dos limites do mapa
   ben.x = Math.max(0, Math.min(levelWidth - ben.width, ben.x));
 
+  // Comportamento da câmera seguindo o Ben
   if (ben.x > canvas.width / 2 && ben.x < levelWidth - canvas.width / 2) cameraX = ben.x - canvas.width / 2;
   else if (ben.x <= canvas.width / 2) cameraX = 0;
   else if (ben.x >= levelWidth - canvas.width / 2) cameraX = levelWidth - canvas.width;
 
+  // Criação da área de acerto (Hitbox) do ataque do Ben
   const attackArea = ben.isAttacking ? {
     x: ben.facing === 'right' ? ben.x + ben.width : ben.x - 35,
     y: ben.y, width: 45, height: ben.height
@@ -627,12 +659,14 @@ function update() {
 
   const data = activeLevelData;
 
+  // Coleta de itens (moedas)
   data.items?.forEach(item => {
     if (!item.collected && isColliding(ben, { x: item.x, y: item.y, width: item.size, height: item.size })) {
       item.collected = true; ben.score += 10;
     }
   });
 
+  // Atualização e colisão com Caranguejos
   data.crabs?.forEach(crab => {
     if (crab.alive) {
       crab.x += crab.speed * crab.direction;
@@ -654,6 +688,7 @@ function update() {
     }
   });
 
+  // Atualização e colisão com Morcegos
   data.bats?.forEach(bat => {
     if (bat.alive) {
       bat.x -= bat.speed;
@@ -669,6 +704,7 @@ function update() {
     }
   });
 
+  // Piscinas de lava
   data.lavaPits?.forEach(pit => {
     pit.offset += 0.08;
     if (ben.x + ben.width > pit.x + 10 && ben.x < pit.x + pit.width - 10 && ben.y + ben.height >= groundY - 10) {
@@ -676,6 +712,7 @@ function update() {
     }
   });
 
+  // Bola de fogo
   data.fireballs?.forEach(fb => {
     if (fb.alive) {
       fb.x -= fb.speed;
@@ -690,6 +727,7 @@ function update() {
     }
   });
 
+  // Zumbis
   data.zombies?.forEach(zombie => {
     if (zombie.alive) {
       const desiredDir = ben.x > zombie.x ? 1 : -1;
@@ -709,6 +747,7 @@ function update() {
     }
   });
 
+  // Aranhas e teias
   data.spiders?.forEach(spider => {
     if (spider.alive) {
       const dist = Math.abs(ben.x - spider.x);
@@ -749,12 +788,14 @@ function update() {
     }
   });
 
+  // Buracos no chão
   data.holes?.forEach(hole => {
     if (ben.x + ben.width > hole.x + 20 && ben.x < hole.x + hole.width - 20 && ben.y + ben.height >= groundY - 5) {
       ben.alive = false;
     }
   });
 
+  // Águias voadoras
   data.eagles?.forEach(eagle => {
     if (eagle.alive) {
       eagle.wingFlapTimer += 0.15;
@@ -787,6 +828,7 @@ function update() {
     }
   });
 
+  // Esqueletos arqueiros
   data.skeletons?.forEach(skel => {
     if (skel.alive) {
       const dist = Math.abs(ben.x - skel.x);
@@ -854,6 +896,7 @@ function update() {
     }
   });
 
+  // Inimigos Slands (Teleporte)
   data.slands?.forEach(sland => {
     if (sland.alive) {
       const slandCenterX = sland.x + sland.width / 2;
@@ -949,7 +992,7 @@ function update() {
     }
   });
 
-  // Lógica dos Aliens (Fase 9)
+  // Aliens da Fase 9
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       const dist = Math.abs(ben.x - alien.x);
@@ -1077,30 +1120,25 @@ function update() {
     }
   });
 
-  // =============================================================================
-  // LÓGICA DO SUPER CHEFE DA FASE 10 (COM 1 ORB QUE AUMENTA E PISCA 2 VEZES)
-  // =============================================================================
+  // LÓGICA DO SUPER CHEFE DA FASE 10
   if (data.superBoss && data.superBoss.alive) {
     const sb = data.superBoss;
     sb.animTimer += 0.15;
     sb.floatTimer += 0.04;
 
-    // Movimento flutuante senoidal
     sb.y = sb.baseY + Math.sin(sb.floatTimer) * 25;
 
     if (sb.hitCooldown > 0) sb.hitCooldown--;
     sb.attackTimer++;
 
-    // Estados de Ataque
     if (sb.attackState === 'idle') {
       sb.attackState = 'casting_stones';
       sb.stateTimer = 60;
-      sb.animTimer = 0; // Ativa bossatck2.png
+      sb.animTimer = 0;
     } 
     else if (sb.attackState === 'casting_stones') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Joga 3 pedras para cima (`pwrboss_alien1.png`)
         for (let i = 0; i < 3; i++) {
           data.bossProjectiles.push({
             x: sb.x + (i - 1) * 50,
@@ -1114,12 +1152,11 @@ function update() {
           });
         }
         sb.attackState = 'summoning_single_orb';
-        sb.stateTimer = 65; // Tempo para o único orb nascer, crescer e piscar
+        sb.stateTimer = 65;
       }
     } 
     else if (sb.attackState === 'summoning_single_orb') {
       sb.stateTimer--;
-      // Cria APENAS 1 Orb seguro longe do herói no céu
       if (!data.singleOrb) {
         let safeOrbX = ben.x > cameraX + 300 ? cameraX + 150 : cameraX + canvas.width - 250;
         data.singleOrb = {
@@ -1133,7 +1170,6 @@ function update() {
           alive: true
         };
       } else {
-        // O Orb aumenta de tamanho e pisca rapidamente 2 vezes antes de soltar o feixe
         data.singleOrb.timer--;
         let blinkPhase = Math.sin(data.singleOrb.timer * 0.9);
         data.singleOrb.width = data.singleOrb.baseWidth + (blinkPhase > 0 ? 25 : 0);
@@ -1141,7 +1177,6 @@ function update() {
       }
 
       if (sb.stateTimer <= 0) {
-        // Cria a área de aviso (linha de mira tracejada) embaixo do Orb até o chão
         if (data.singleOrb) {
           data.beamWarning = {
             x: data.singleOrb.x - 45,
@@ -1152,23 +1187,22 @@ function update() {
           };
         }
         sb.attackState = 'waiting_beam';
-        sb.stateTimer = 35; // Pequeno aviso antes da explosão
+        sb.stateTimer = 35;
       }
     } 
     else if (sb.attackState === 'waiting_beam') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Dispara o superpoder (`pwrboss_alien2`) do céu ao chão baseado exatamente no Orb
         data.screenBeam = {
           x: data.beamWarning ? data.beamWarning.x : cameraX + 200,
           y: 0,
           width: 140,
           height: canvas.height,
-          timer: 120, // 2 segundos (60fps * 2)
+          timer: 120,
           alive: true
         };
         data.beamWarning = null;
-        data.singleOrb = null; // Some com o orb
+        data.singleOrb = null;
         sb.attackState = 'beam_active';
       }
     } 
@@ -1185,7 +1219,6 @@ function update() {
     else if (sb.attackState === 'shield_attack') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Lança o poder `pwrboss3.png` que exige o escudo
         const dir = ben.x < sb.x ? -1 : 1;
         data.bossProjectiles.push({
           x: dir === -1 ? sb.x - 60 : sb.x + sb.width,
@@ -1207,7 +1240,7 @@ function update() {
     }
   }
 
-  // Atualização dos Projéteis do Boss
+  // Projéteis do Boss
   data.bossProjectiles?.forEach(p => {
     if (p.alive) {
       p.x += p.vx;
@@ -1250,7 +1283,6 @@ function update() {
     }
   });
 
-  // Colisão com o feixe de luz gigante (`pwrboss_alien2`)
   if (data.screenBeam && data.screenBeam.alive) {
     if (isColliding(ben, data.screenBeam)) {
       ben.alive = false;
@@ -1260,6 +1292,7 @@ function update() {
   const remainingSlands = data.slands ? data.slands.filter(s => s.alive).length : 0;
   const benCenterX = ben.x + ben.width / 2, benCenterY = ben.y + ben.height / 2;
 
+  // Condição de conclusão de fase
   if (currentLevel === 8) {
     if (remainingSlands === 0 &&
         benCenterX >= abductionLight.x + 20 && benCenterX <= abductionLight.x + abductionLight.width - 20 &&
@@ -1279,7 +1312,7 @@ function update() {
 }
 
 // =============================================================================
-// 7. DESENHO NA TELA (DRAW)
+// 7. RENDERIZAÇÃO NA TELA (DRAW)
 // =============================================================================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1333,6 +1366,7 @@ function draw() {
 
   const data = activeLevelData;
 
+  // Desenha fundo e cenários do nível atual
   ctx.drawImage(images[data.bgKey], 0, 0, levelWidth, canvas.height);
 
   data.trees?.forEach(t => ctx.drawImage(images.tree, t.x, groundY - t.h, t.w, t.h));
@@ -1367,8 +1401,10 @@ function draw() {
     ctx.drawImage(images.portal, portal.x, portal.y, portal.width, portal.height);
   }
 
+  // Itens coletáveis
   data.items?.forEach(item => { if (!item.collected) ctx.drawImage(images.coin, item.x, item.y, item.size, item.size); });
 
+  // Renderização de Inimigos e Projéteis
   data.crabs?.forEach(crab => {
     if (crab.alive) {
       const frame = (Math.floor(crab.animTimer) % 4) + 1;
@@ -1510,7 +1546,7 @@ function draw() {
     }
   });
 
-  // Renderização do Super Chefe da Fase 10
+  // Renderização do Chefão Final da Fase 10
   if (data.superBoss && data.superBoss.alive) {
     const sb = data.superBoss;
     let bossImg = images[`bossAlien${(Math.floor(sb.animTimer) % 4) + 1}`];
@@ -1519,7 +1555,7 @@ function draw() {
     }
     ctx.drawImage(bossImg, sb.x, sb.y, sb.width, sb.height);
 
-    // Barra de Vida do Chefão Final
+    // Barra de vida do Chefão
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(sb.x, sb.y - 25, sb.width, 10);
     ctx.fillStyle = '#ef4444';
@@ -1529,7 +1565,7 @@ function draw() {
     ctx.strokeRect(sb.x, sb.y - 25, sb.width, 10);
   }
 
-  // Desenho do 1 Orb centralizado no céu com redimensionamento dinâmico
+  // Orb de poder do Chefão
   if (data.singleOrb && data.singleOrb.alive) {
     ctx.save();
     ctx.translate(data.singleOrb.x + data.singleOrb.width / 2, data.singleOrb.y + data.singleOrb.height / 2);
@@ -1537,7 +1573,7 @@ function draw() {
     ctx.restore();
   }
 
-  // Aviso visual (linha de mira) indicando onde o feixe vai cair do Orb ao chão
+  // Aviso da área de impacto do feixe
   if (data.beamWarning && data.beamWarning.alive) {
     ctx.save();
     ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
@@ -1549,7 +1585,7 @@ function draw() {
     ctx.restore();
   }
 
-  // Desenho do Feixe Gigante (`pwrboss_alien2`) com efeito espelho/piscando
+  // Feixe de energia gigante do Chefão
   if (data.screenBeam && data.screenBeam.alive) {
     ctx.save();
     const isMirrored = Math.floor(data.screenBeam.timer / 5) % 2 === 0;
@@ -1563,7 +1599,6 @@ function draw() {
     ctx.restore();
   }
 
-  // Desenho dos Projéteis do Boss (`pwrboss_alien1` e `pwrboss3`)
   data.bossProjectiles?.forEach(p => {
     if (p.alive) {
       const img = p.type === 'shield_req' || p.type === 'reflected' ? images.pwrboss3 : images.pwrbossAlien1;
@@ -1571,6 +1606,7 @@ function draw() {
     }
   });
 
+  // Renderização do Ben (Movimento, ataque, defesa, parado)
   if (ben.alive) {
     if (ben.isDefending) {
       const img = ben.facing === 'right' ? images.benDefRight : images.benDefLeft;
@@ -1596,10 +1632,12 @@ function draw() {
 
   ctx.restore();
 
+  // Interface de texto (HUD superior)
   ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px Arial';
   ctx.fillText(`Fase: ${currentLevel} | Pontos: ${ben.score}`, 20, 30);
   drawTechButton(inGameMenuBtn.x, inGameMenuBtn.y, inGameMenuBtn.width, inGameMenuBtn.height, 'MENU', 15);
 
+  // Tela de "Game Over" (Morte)
   if (!ben.alive) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center';
@@ -1609,6 +1647,7 @@ function draw() {
     ctx.textAlign = 'left';
   }
 
+  // Tela de Fase Concluída / Vitória
   if (levelCompleted) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fde047'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center';
@@ -1626,7 +1665,7 @@ function draw() {
 }
 
 // =============================================================================
-// 8. LOOP PRINCIPAL DE EXECUÇÃO
+// 8. LOOP PRINCIPAL DE EXECUÇÃO DO JOGO
 // =============================================================================
 function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
@@ -1634,6 +1673,7 @@ function gameLoop(timestamp) {
   if (!lastFrameTime) lastFrameTime = timestamp;
   const elapsed = timestamp - lastFrameTime;
 
+  // Garante a execução cadenciada de acordo com o FPS alvo
   if (elapsed > fpsInterval) {
     lastFrameTime = timestamp - (elapsed % fpsInterval);
     update();
@@ -1641,4 +1681,5 @@ function gameLoop(timestamp) {
   }
 }
 
+// Inicia o loop principal do jogo
 requestAnimationFrame(gameLoop);
