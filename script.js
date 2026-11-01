@@ -148,7 +148,7 @@ loadImg('defalien', 'defalien.png');
 loadImg('pwralien1', 'pwralien1.png');
 loadImg('pwralien2', 'pwralien2.png');
 
-// Sprites do Super Chefe da Fase 10 (Atualizados conforme solicitado)
+// Sprites do Super Chefe da Fase 10
 for (let i = 1; i <= 4; i++) {
   loadImg(`bossAlien${i}`, `boss_alien${i}.png`);
 }
@@ -302,8 +302,9 @@ const LEVELS_DATA = {
       stateTimer: 0, mirrorTimer: 0, alive: true, hitCooldown: 0
     },
     bossProjectiles: [],
-    orbs: [],
-    screenBeam: null
+    singleOrb: null,
+    screenBeam: null,
+    beamWarning: null
   }
 };
 
@@ -1077,29 +1078,29 @@ function update() {
   });
 
   // =============================================================================
-  // LÓGICA DO SUPER CHEFE DA FASE 10 (COM ORBES, SUPERPODER E ESPELHO)
+  // LÓGICA DO SUPER CHEFE DA FASE 10 (COM 1 ORB QUE AUMENTA E PISCA 2 VEZES)
   // =============================================================================
   if (data.superBoss && data.superBoss.alive) {
     const sb = data.superBoss;
     sb.animTimer += 0.15;
     sb.floatTimer += 0.04;
 
-    // Efeito de gravidade/flutuação senoidal
+    // Movimento flutuante senoidal
     sb.y = sb.baseY + Math.sin(sb.floatTimer) * 25;
 
     if (sb.hitCooldown > 0) sb.hitCooldown--;
     sb.attackTimer++;
 
-    // Gerenciador de Estados dos Ataques do Boss
+    // Estados de Ataque
     if (sb.attackState === 'idle') {
       sb.attackState = 'casting_stones';
       sb.stateTimer = 60;
-      sb.animTimer = 0; // muda pra bossatck2.png
+      sb.animTimer = 0; // Ativa bossatck2.png
     } 
     else if (sb.attackState === 'casting_stones') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Joga 3 poderes de pedra para cima (`pwrboss_alien1.png`)
+        // Joga 3 pedras para cima (`pwrboss_alien1.png`)
         for (let i = 0; i < 3; i++) {
           data.bossProjectiles.push({
             x: sb.x + (i - 1) * 50,
@@ -1112,43 +1113,68 @@ function update() {
             alive: true
           });
         }
-        sb.attackState = 'summoning_orbs';
-        sb.stateTimer = 50;
+        sb.attackState = 'summoning_single_orb';
+        sb.stateTimer = 65; // Tempo para o único orb nascer, crescer e piscar
       }
     } 
-    else if (sb.attackState === 'summoning_orbs') {
+    else if (sb.attackState === 'summoning_single_orb') {
       sb.stateTimer--;
+      // Cria APENAS 1 Orb seguro longe do herói no céu
+      if (!data.singleOrb) {
+        let safeOrbX = ben.x > cameraX + 300 ? cameraX + 150 : cameraX + canvas.width - 250;
+        data.singleOrb = {
+          x: safeOrbX,
+          y: 65,
+          baseWidth: 50,
+          baseHeight: 50,
+          width: 50,
+          height: 50,
+          timer: 65,
+          alive: true
+        };
+      } else {
+        // O Orb aumenta de tamanho e pisca rapidamente 2 vezes antes de soltar o feixe
+        data.singleOrb.timer--;
+        let blinkPhase = Math.sin(data.singleOrb.timer * 0.9);
+        data.singleOrb.width = data.singleOrb.baseWidth + (blinkPhase > 0 ? 25 : 0);
+        data.singleOrb.height = data.singleOrb.baseHeight + (blinkPhase > 0 ? 25 : 0);
+      }
+
       if (sb.stateTimer <= 0) {
-        // 3 Orbes aparecem no céu
-        data.orbs = [
-          { x: cameraX + 200, y: 80, width: 45, height: 45, alive: true },
-          { x: cameraX + canvas.width / 2, y: 60, width: 45, height: 45, alive: true },
-          { x: cameraX + canvas.width - 250, y: 80, width: 45, height: 45, alive: true }
-        ];
+        // Cria a área de aviso (linha de mira tracejada) embaixo do Orb até o chão
+        if (data.singleOrb) {
+          data.beamWarning = {
+            x: data.singleOrb.x - 45,
+            y: 0,
+            width: 140,
+            height: canvas.height,
+            alive: true
+          };
+        }
         sb.attackState = 'waiting_beam';
-        sb.stateTimer = 40;
+        sb.stateTimer = 35; // Pequeno aviso antes da explosão
       }
     } 
     else if (sb.attackState === 'waiting_beam') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Dispara o superpoder do tamanho da tela (`pwrboss_alien2`) por 2 segundos (120 frames)
+        // Dispara o superpoder (`pwrboss_alien2`) do céu ao chão baseado exatamente no Orb
         data.screenBeam = {
-          x: ben.x - 70, // Foca na posição onde o herói está ou área ampla
+          x: data.beamWarning ? data.beamWarning.x : cameraX + 200,
           y: 0,
           width: 140,
           height: canvas.height,
-          timer: 120, // 2 segundos a 60fps
+          timer: 120, // 2 segundos (60fps * 2)
           alive: true
         };
-        data.orbs = []; // Some com as orbes
+        data.beamWarning = null;
+        data.singleOrb = null; // Some com o orb
         sb.attackState = 'beam_active';
       }
     } 
     else if (sb.attackState === 'beam_active') {
       if (data.screenBeam && data.screenBeam.alive) {
         data.screenBeam.timer--;
-        // Efeito espelho/piscando nos últimos frames
         if (data.screenBeam.timer <= 0) {
           data.screenBeam.alive = false;
           sb.attackState = 'shield_attack';
@@ -1159,7 +1185,7 @@ function update() {
     else if (sb.attackState === 'shield_attack') {
       sb.stateTimer--;
       if (sb.stateTimer <= 0) {
-        // Lança o poder `pwrboss3.png` diretamente no Ben (requer escudo)
+        // Lança o poder `pwrboss3.png` que exige o escudo
         const dir = ben.x < sb.x ? -1 : 1;
         data.bossProjectiles.push({
           x: dir === -1 ? sb.x - 60 : sb.x + sb.width,
@@ -1181,18 +1207,17 @@ function update() {
     }
   }
 
-  // Atualização dos projéteis e feixes do Boss
+  // Atualização dos Projéteis do Boss
   data.bossProjectiles?.forEach(p => {
     if (p.alive) {
       p.x += p.vx;
       p.y += p.vy;
       if (p.type === 'upward_stone') {
-        p.vy += 0.3; // Gravidade puxando de volta pra terra
+        p.vy += 0.3;
       }
 
       if (isColliding(ben, p)) {
         if (p.type === 'shield_req' && ben.isDefending) {
-          // Verifica se está defendendo virado para o boss
           const facingBoss = (ben.facing === 'right' && p.vx < 0) || (ben.facing === 'left' && p.vx > 0);
           if (facingBoss) {
             p.vx *= -1.5;
@@ -1205,7 +1230,6 @@ function update() {
         }
       }
 
-      // Se a pedra rebatida atingir o Chefão
       if (p.type === 'reflected' && data.superBoss && data.superBoss.alive) {
         if (isColliding(p, data.superBoss) && data.superBoss.hitCooldown <= 0) {
           data.superBoss.lives--;
@@ -1229,7 +1253,7 @@ function update() {
   // Colisão com o feixe de luz gigante (`pwrboss_alien2`)
   if (data.screenBeam && data.screenBeam.alive) {
     if (isColliding(ben, data.screenBeam)) {
-      ben.alive = false; // Morre se estiver embaixo ou tocar
+      ben.alive = false;
     }
   }
 
@@ -1486,7 +1510,7 @@ function draw() {
     }
   });
 
-  // Renderização do Super Chefe da Fase 10 (Flutuando + Troca para bossatck2.png)
+  // Renderização do Super Chefe da Fase 10
   if (data.superBoss && data.superBoss.alive) {
     const sb = data.superBoss;
     let bossImg = images[`bossAlien${(Math.floor(sb.animTimer) % 4) + 1}`];
@@ -1505,14 +1529,27 @@ function draw() {
     ctx.strokeRect(sb.x, sb.y - 25, sb.width, 10);
   }
 
-  // Desenho das Orbes no Céu
-  data.orbs?.forEach(orb => {
-    if (orb.alive) {
-      ctx.drawImage(images.orb, orb.x, orb.y, orb.width, orb.height);
-    }
-  });
+  // Desenho do 1 Orb centralizado no céu com redimensionamento dinâmico
+  if (data.singleOrb && data.singleOrb.alive) {
+    ctx.save();
+    ctx.translate(data.singleOrb.x + data.singleOrb.width / 2, data.singleOrb.y + data.singleOrb.height / 2);
+    ctx.drawImage(images.orb, -data.singleOrb.width / 2, -data.singleOrb.height / 2, data.singleOrb.width, data.singleOrb.height);
+    ctx.restore();
+  }
 
-  // Desenho do Feixe Gigante (pwrboss_alien2) com efeito espelho/piscando
+  // Aviso visual (linha de mira) indicando onde o feixe vai cair do Orb ao chão
+  if (data.beamWarning && data.beamWarning.alive) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+    ctx.fillRect(data.beamWarning.x, data.beamWarning.y, data.beamWarning.width, data.beamWarning.height);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 10]);
+    ctx.strokeRect(data.beamWarning.x, data.beamWarning.y, data.beamWarning.width, data.beamWarning.height);
+    ctx.restore();
+  }
+
+  // Desenho do Feixe Gigante (`pwrboss_alien2`) com efeito espelho/piscando
   if (data.screenBeam && data.screenBeam.alive) {
     ctx.save();
     const isMirrored = Math.floor(data.screenBeam.timer / 5) % 2 === 0;
