@@ -42,18 +42,16 @@ if (skipCutsceneBtn) {
   }, { passive: false });
 }
 
-// Inicia Cutscene escolhendo o vídeo certo conforme o nível de destino
 function startCutscene(targetLevel = 1) {
   nextLevelAfterCutscene = targetLevel;
   gameState = 'cutscene';
   updateControlsVisibility();
 
-  // Seleciona o arquivo de vídeo correspondente
   let videoSrc = '';
   if (targetLevel === 1) {
-    videoSrc = './video1.mp4'; // Cutscene do Início (Antes da Fase 1)
+    videoSrc = './video1.mp4';
   } else if (targetLevel === 9) {
-    videoSrc = './video2.mp4'; // Cutscene da transição Fase 8 -> 9
+    videoSrc = './video2.mp4';
   }
 
   if (cutsceneVideo && videoSrc) {
@@ -82,7 +80,6 @@ function endCutscene() {
   loadLevel(nextLevelAfterCutscene);
 }
 
-// Atualiza a visibilidade dos controles na tela
 function updateControlsVisibility() {
   const controls = document.querySelectorAll('.game-controls');
   controls.forEach(ctrl => {
@@ -143,7 +140,7 @@ for (let i = 1; i <= 3; i++) {
 loadImg('slandAtk', 'sland_atk.png');
 loadImg('tel', 'tel.png');
 
-// Sprites do Alien da Fase 9
+// Sprites dos Aliens da Fase 9
 loadImg('alien1', 'alien1.png');
 loadImg('alien2', 'alien2.png');
 loadImg('alien3', 'alien3.png');
@@ -151,7 +148,17 @@ loadImg('defalien', 'defalien.png');
 loadImg('pwralien1', 'pwralien1.png');
 loadImg('pwralien2', 'pwralien2.png');
 
-for (let i = 1; i <= 9; i++) {
+// Sprites do Super Chefe da Fase 10 (Atualizados conforme solicitado)
+for (let i = 1; i <= 4; i++) {
+  loadImg(`bossAlien${i}`, `boss_alien${i}.png`);
+}
+loadImg('bossatck2', 'bossatck2.png');
+loadImg('pwrbossAlien1', 'pwrboss_alien1.png');
+loadImg('orb', 'orb.png');
+loadImg('pwrbossAlien2', 'pwrboss_alien2.png');
+loadImg('pwrboss3', 'pwrboss3.png');
+
+for (let i = 1; i <= 10; i++) {
   loadImg(`bg${i}`, `tela${i}.jfif`);
 }
 
@@ -285,6 +292,18 @@ const LEVELS_DATA = {
       { x: 3200, y: groundY - 150, width: 95, height: 150, lives: 3, hitCooldown: 0, defendTimer: 0, attackCooldown: 0, attackStage: 'idle', nextAttackType: 'dash', dashDistance: 0, dashDir: -1, stageTimer: 0, shockwaveRadius: 0, alive: true }
     ],
     alienProjectiles: []
+  },
+  10: {
+    bgKey: 'bg10',
+    items: [600, 1400, 2200, 3000].map(x => ({ x, y: groundY - 35, size: 32, collected: false })),
+    superBoss: {
+      x: 3200, y: groundY - 260, baseY: groundY - 260, width: 140, height: 180,
+      lives: 5, animTimer: 0, floatTimer: 0, attackTimer: 0, attackState: 'idle',
+      stateTimer: 0, mirrorTimer: 0, alive: true, hitCooldown: 0
+    },
+    bossProjectiles: [],
+    orbs: [],
+    screenBeam: null
   }
 };
 
@@ -326,9 +345,8 @@ function handleAction() {
 
   if (levelCompleted) {
     if (currentLevel === 8) {
-      // Passou do nível 8 -> Toca o video2.mp4 antes da Fase 9
       startCutscene(9);
-    } else if (currentLevel < 9) {
+    } else if (currentLevel < 10) {
       loadLevel(currentLevel + 1);
     } else {
       gameState = 'menu';
@@ -408,7 +426,7 @@ function handleCanvasClick(clientX, clientY) {
       const col = (i - 1) % 5, row = Math.floor((i - 1) / 5);
       const btnX = startX + col * (btnW + gap), btnY = 150 + row * (btnH + gap);
       if (clickX >= btnX && clickX <= btnX + btnW && clickY >= btnY && clickY <= btnY + btnH) {
-        if (i <= 9) loadLevel(i);
+        if (i <= 10) loadLevel(i);
       }
     }
     if (clickX >= canvas.width / 2 - 70 && clickX <= canvas.width / 2 + 70 && clickY >= 360 && clickY <= 405) {
@@ -930,7 +948,7 @@ function update() {
     }
   });
 
-  // Lógica dos Aliens
+  // Lógica dos Aliens (Fase 9)
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       const dist = Math.abs(ben.x - alien.x);
@@ -1039,7 +1057,6 @@ function update() {
     }
   });
 
-  // Projéteis dos Aliens
   data.alienProjectiles?.forEach(p => {
     if (p.alive) {
       p.x += p.speed;
@@ -1059,6 +1076,163 @@ function update() {
     }
   });
 
+  // =============================================================================
+  // LÓGICA DO SUPER CHEFE DA FASE 10 (COM ORBES, SUPERPODER E ESPELHO)
+  // =============================================================================
+  if (data.superBoss && data.superBoss.alive) {
+    const sb = data.superBoss;
+    sb.animTimer += 0.15;
+    sb.floatTimer += 0.04;
+
+    // Efeito de gravidade/flutuação senoidal
+    sb.y = sb.baseY + Math.sin(sb.floatTimer) * 25;
+
+    if (sb.hitCooldown > 0) sb.hitCooldown--;
+    sb.attackTimer++;
+
+    // Gerenciador de Estados dos Ataques do Boss
+    if (sb.attackState === 'idle') {
+      sb.attackState = 'casting_stones';
+      sb.stateTimer = 60;
+      sb.animTimer = 0; // muda pra bossatck2.png
+    } 
+    else if (sb.attackState === 'casting_stones') {
+      sb.stateTimer--;
+      if (sb.stateTimer <= 0) {
+        // Joga 3 poderes de pedra para cima (`pwrboss_alien1.png`)
+        for (let i = 0; i < 3; i++) {
+          data.bossProjectiles.push({
+            x: sb.x + (i - 1) * 50,
+            y: sb.y,
+            width: 50,
+            height: 50,
+            vx: (Math.random() - 0.5) * 4,
+            vy: -8,
+            type: 'upward_stone',
+            alive: true
+          });
+        }
+        sb.attackState = 'summoning_orbs';
+        sb.stateTimer = 50;
+      }
+    } 
+    else if (sb.attackState === 'summoning_orbs') {
+      sb.stateTimer--;
+      if (sb.stateTimer <= 0) {
+        // 3 Orbes aparecem no céu
+        data.orbs = [
+          { x: cameraX + 200, y: 80, width: 45, height: 45, alive: true },
+          { x: cameraX + canvas.width / 2, y: 60, width: 45, height: 45, alive: true },
+          { x: cameraX + canvas.width - 250, y: 80, width: 45, height: 45, alive: true }
+        ];
+        sb.attackState = 'waiting_beam';
+        sb.stateTimer = 40;
+      }
+    } 
+    else if (sb.attackState === 'waiting_beam') {
+      sb.stateTimer--;
+      if (sb.stateTimer <= 0) {
+        // Dispara o superpoder do tamanho da tela (`pwrboss_alien2`) por 2 segundos (120 frames)
+        data.screenBeam = {
+          x: ben.x - 70, // Foca na posição onde o herói está ou área ampla
+          y: 0,
+          width: 140,
+          height: canvas.height,
+          timer: 120, // 2 segundos a 60fps
+          alive: true
+        };
+        data.orbs = []; // Some com as orbes
+        sb.attackState = 'beam_active';
+      }
+    } 
+    else if (sb.attackState === 'beam_active') {
+      if (data.screenBeam && data.screenBeam.alive) {
+        data.screenBeam.timer--;
+        // Efeito espelho/piscando nos últimos frames
+        if (data.screenBeam.timer <= 0) {
+          data.screenBeam.alive = false;
+          sb.attackState = 'shield_attack';
+          sb.stateTimer = 70;
+        }
+      }
+    } 
+    else if (sb.attackState === 'shield_attack') {
+      sb.stateTimer--;
+      if (sb.stateTimer <= 0) {
+        // Lança o poder `pwrboss3.png` diretamente no Ben (requer escudo)
+        const dir = ben.x < sb.x ? -1 : 1;
+        data.bossProjectiles.push({
+          x: dir === -1 ? sb.x - 60 : sb.x + sb.width,
+          y: sb.y + 60,
+          width: 60,
+          height: 60,
+          vx: 8.5 * dir,
+          vy: 0,
+          type: 'shield_req',
+          alive: true
+        });
+        sb.attackState = 'idle';
+        sb.attackTimer = 0;
+      }
+    }
+
+    if (isColliding(ben, sb)) {
+      if (!ben.isDefending) ben.alive = false;
+    }
+  }
+
+  // Atualização dos projéteis e feixes do Boss
+  data.bossProjectiles?.forEach(p => {
+    if (p.alive) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.type === 'upward_stone') {
+        p.vy += 0.3; // Gravidade puxando de volta pra terra
+      }
+
+      if (isColliding(ben, p)) {
+        if (p.type === 'shield_req' && ben.isDefending) {
+          // Verifica se está defendendo virado para o boss
+          const facingBoss = (ben.facing === 'right' && p.vx < 0) || (ben.facing === 'left' && p.vx > 0);
+          if (facingBoss) {
+            p.vx *= -1.5;
+            p.type = 'reflected';
+          } else {
+            ben.alive = false;
+          }
+        } else {
+          ben.alive = false;
+        }
+      }
+
+      // Se a pedra rebatida atingir o Chefão
+      if (p.type === 'reflected' && data.superBoss && data.superBoss.alive) {
+        if (isColliding(p, data.superBoss) && data.superBoss.hitCooldown <= 0) {
+          data.superBoss.lives--;
+          data.superBoss.hitCooldown = 40;
+          p.alive = false;
+
+          if (data.superBoss.lives <= 0) {
+            data.superBoss.alive = false;
+            ben.score += 2000;
+            levelCompleted = true;
+          }
+        }
+      }
+
+      if (p.y > groundY + 100 || p.x < cameraX - 200 || p.x > cameraX + canvas.width + 200) {
+        p.alive = false;
+      }
+    }
+  });
+
+  // Colisão com o feixe de luz gigante (`pwrboss_alien2`)
+  if (data.screenBeam && data.screenBeam.alive) {
+    if (isColliding(ben, data.screenBeam)) {
+      ben.alive = false; // Morre se estiver embaixo ou tocar
+    }
+  }
+
   const remainingSlands = data.slands ? data.slands.filter(s => s.alive).length : 0;
   const benCenterX = ben.x + ben.width / 2, benCenterY = ben.y + ben.height / 2;
 
@@ -1066,6 +1240,10 @@ function update() {
     if (remainingSlands === 0 &&
         benCenterX >= abductionLight.x + 20 && benCenterX <= abductionLight.x + abductionLight.width - 20 &&
         benCenterY >= abductionLight.y && benCenterY <= abductionLight.y + abductionLight.height) {
+      levelCompleted = true;
+    }
+  } else if (currentLevel === 10) {
+    if (data.superBoss && !data.superBoss.alive) {
       levelCompleted = true;
     }
   } else {
@@ -1082,7 +1260,6 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Se estiver em Cutscene, o elemento <video> cuida do visual
   if (gameState === 'cutscene') {
     updateControlsVisibility();
     return;
@@ -1126,7 +1303,6 @@ function draw() {
     return;
   }
 
-  // Desenho do Jogo em execução
   updateControlsVisibility();
   ctx.save();
   ctx.translate(-cameraX, 0);
@@ -1163,7 +1339,7 @@ function draw() {
       }
       ctx.restore();
     }
-  } else {
+  } else if (currentLevel !== 10) {
     ctx.drawImage(images.portal, portal.x, portal.y, portal.width, portal.height);
   }
 
@@ -1267,7 +1443,6 @@ function draw() {
     }
   });
 
-  // Desenho dos Aliens
   data.aliens?.forEach(alien => {
     if (alien.alive) {
       if (alien.defendTimer > 0) {
@@ -1300,7 +1475,6 @@ function draw() {
     }
   });
 
-  // Projéteis dos Aliens
   data.alienProjectiles?.forEach(p => {
     if (p.alive) {
       ctx.save();
@@ -1309,6 +1483,54 @@ function draw() {
       if (isFlipped) ctx.scale(-1, 1);
       ctx.drawImage(images.pwralien2, -p.width / 2, -p.height / 2, p.width, p.height);
       ctx.restore();
+    }
+  });
+
+  // Renderização do Super Chefe da Fase 10 (Flutuando + Troca para bossatck2.png)
+  if (data.superBoss && data.superBoss.alive) {
+    const sb = data.superBoss;
+    let bossImg = images[`bossAlien${(Math.floor(sb.animTimer) % 4) + 1}`];
+    if (sb.attackState === 'casting_stones') {
+      bossImg = images.bossatck2;
+    }
+    ctx.drawImage(bossImg, sb.x, sb.y, sb.width, sb.height);
+
+    // Barra de Vida do Chefão Final
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(sb.x, sb.y - 25, sb.width, 10);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(sb.x, sb.y - 25, (sb.width / 5) * sb.lives, 10);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sb.x, sb.y - 25, sb.width, 10);
+  }
+
+  // Desenho das Orbes no Céu
+  data.orbs?.forEach(orb => {
+    if (orb.alive) {
+      ctx.drawImage(images.orb, orb.x, orb.y, orb.width, orb.height);
+    }
+  });
+
+  // Desenho do Feixe Gigante (pwrboss_alien2) com efeito espelho/piscando
+  if (data.screenBeam && data.screenBeam.alive) {
+    ctx.save();
+    const isMirrored = Math.floor(data.screenBeam.timer / 5) % 2 === 0;
+    if (isMirrored) {
+      ctx.translate(data.screenBeam.x + data.screenBeam.width, data.screenBeam.y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(images.pwrbossAlien2, 0, 0, data.screenBeam.width, data.screenBeam.height);
+    } else {
+      ctx.drawImage(images.pwrbossAlien2, data.screenBeam.x, data.screenBeam.y, data.screenBeam.width, data.screenBeam.height);
+    }
+    ctx.restore();
+  }
+
+  // Desenho dos Projéteis do Boss (`pwrboss_alien1` e `pwrboss3`)
+  data.bossProjectiles?.forEach(p => {
+    if (p.alive) {
+      const img = p.type === 'shield_req' || p.type === 'reflected' ? images.pwrboss3 : images.pwrbossAlien1;
+      ctx.drawImage(img, p.x, p.y, p.width, p.height);
     }
   });
 
@@ -1353,18 +1575,14 @@ function draw() {
   if (levelCompleted) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fde047'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center';
-    if (currentLevel < 8) {
+    if (currentLevel < 10) {
       ctx.fillText(`FASE ${currentLevel} CONCLUÍDA!`, canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
       ctx.fillText(`Toque na tela para ir para a próxima fase!`, canvas.width / 2, canvas.height / 2 + 30);
-    } else if (currentLevel === 8) {
-      ctx.fillText('FASE 8 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Toque na tela para assistir à história e enfrentar o Boss!`, canvas.width / 2, canvas.height / 2 + 30);
     } else {
-      ctx.fillText('FASE 9 CONCLUÍDA!', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillText('PARABÉNS! JOGO CONCLUÍDO!', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#ffffff'; ctx.font = '20px Arial';
-      ctx.fillText(`Ameaça Alienígena Derrotada! Pontuação: ${ben.score}`, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText(`O Super Chefão Final foi derrotado! Pontuação Total: ${ben.score}`, canvas.width / 2, canvas.height / 2 + 30);
     }
     ctx.textAlign = 'left';
   }
